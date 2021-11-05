@@ -1,5 +1,9 @@
+let absoluteScreenWidth = screen.availWidth;
+let absoluteScreenHeight = screen.availHeight;
+
 function setup() {
-  createCanvas(400, 400);
+  createCanvas(absoluteScreenWidth, absoluteScreenHeight);
+  
 }
 
 function draw() {
