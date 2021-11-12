@@ -37,46 +37,45 @@ let absoluteScreenHeight = screen.availHeight;
 
 // Stupid stuff
 let ball;
-let path;
-let svgPathElement;
+
+let allSvgElements = [];
+
+// This code will error when:
+    //     There is no SVG file found
+    //     You don't import the pathseg and decomp files in your index.html
+    //     You're running the wrong index.html file on LiveServer (you have to right click and do it)
+    //     You're just not cool enough to use images in matter.js
+function addSvgElement(resourcePath) {
+    httpGet(resourcePath, "text", false, function(response) {
+        // when the HTTP request completes ...
+        const parser = new DOMParser();  // Create a new DOM parser to parse the SVG document
+        const svgDoc = parser.parseFromString(response, "image/svg+xml"); 
+        svgPathElement = svgDoc.querySelector("path");
+        svgBody = bodyFromPath(svgPathElement, 180, 300, { isStatic: false, friction: 0.0 });
+        allSvgElements.push(svgBody);
+        World.add(engine.world, svgBody);
+    });
+}
 
 function preload() {
-    httpGet("./path.svg", "text", false, function(response) {
-      // when the HTTP request completes ...
-      // 1. parse the svg and get the path
-      const parser = new DOMParser();
-      const svgDoc = parser.parseFromString(response, "image/svg+xml");
-      svgPathElement = svgDoc.querySelector("path");
-      // 2. setup all matter.js related things
-      // setupMatter(svgPathElement);
-    });
-  }
-
-function setupMatter(svgPathElement) {
-    // use the path from the svg file to create the corresponding matter object
-    path = bodyFromPath(svgPathElement, 180, 300, { isStatic: false, friction: 0.0 });
-
+    // create an engine
     engine = Engine.create();
-    World.add(engine.world, path);
-    // Engine.run(engine);
+    world = engine.world;
+
+    engine.world.gravity.y = 0; // Set gravity to 0
+    addSvgElement("./resources/plane.svg");
 }
 
 function setup() {
     const canvas = createCanvas(absoluteScreenWidth, absoluteScreenHeight);
 
-    // create an engine
-    engine = Engine.create();
-    world = engine.world;
-    engine.world.gravity.y = 0;
     
-    // Load the SVG
-    setupMatter(svgPathElement);
 
     //------------------------Bridge Stuff Start------------------------//
 
     // adding bridge
     const group = Body.nextGroup(true);
-    const rects = Composites.stack(100, 102, 1, 35, 30, 10, function(x, y) {
+    const rects = Composites.stack(100, 102, 1, 30, 10, 10, function(x, y) {
         //stack syntax: xx, yy, col, row, colGap, rowGap, callback
         return Bodies.rectangle(x, y, 10, 10, { 
             collisionFilter: { group: group },
@@ -123,8 +122,6 @@ function setup() {
     //--------------------- Begin forces setup -------------------------//
     bridge.bodies[bridge.bodies.length/2]
 
-    testCircle = new Particle(100, 100, 20);
-
     // path = bodyFromPath(svgPathElement, 180, 300, { isStatic: true, friction: 0.0 });
     // World.add(engine.world, [path]);
 
@@ -134,29 +131,16 @@ function setup() {
 
 function draw() {
     background(0);
-    // drawBody(rect1);
-    // drawBody(rect2);
     noStroke();
     fill(128);
     stroke(128);
     strokeWeight(2);
-    // drawConstraint(topConstraint);
-    // drawConstraint(bottomConstraint);
     drawConstraint(bridgeLeftConstraint);
     drawConstraint(bridgeRightConstraint);
-    //drawConstraint(bridge.constraints);
-    // drawConstraint(constraint4);
-    // drawBody(ground);
-    // drawBody(baseRect);
-    // drawBody(middleRect);
-    // drawBody(leftPost);
-    // drawBody(rightPost);
     drawBodies(bridge.bodies);
     drawBody(ball);
-    
-    // testCircle.show();
 
-    drawBody(path);
+    drawBodies(allSvgElements);
 
     drawMouse(mouseConstraint);
 }
