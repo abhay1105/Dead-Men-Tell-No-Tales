@@ -12,26 +12,18 @@ const Composite = Matter.Composite;
 const drawMouse = Helpers.drawMouse;
 const drawBody = Helpers.drawBody;
 const drawBodies = Helpers.drawBodies;
+const bodyFromPath = Helpers.bodyFromPath;
 //^^ I have no idea what the difference is between this one and the one above
 //^^ Update, I think that's just to draw multiple bodies at hence (since a bridge is made of multiple bodies of rects)
 const drawConstraint = Helpers.drawConstraint;
 
 let engine;
 let ground;
-let ball;
 
 // the top screw on
 let topConstraint;
 let bottomConstraint;
 let constraint4;
-
-// the slingshot shape
-let rect1;
-let rectTwo;
-let baseRect;
-let middleRect;
-let leftPost;
-let rightPost;
 
 //Bridge Var's
 let bridge;
@@ -43,7 +35,31 @@ let bridgeRightConstraint;
 let absoluteScreenWidth = screen.availWidth;
 let absoluteScreenHeight = screen.availHeight;
 
-let testCircle;
+// Stupid stuff
+let ball;
+let path;
+let svgPathElement;
+
+function preload() {
+    httpGet("./path.svg", "text", false, function(response) {
+      // when the HTTP request completes ...
+      // 1. parse the svg and get the path
+      const parser = new DOMParser();
+      const svgDoc = parser.parseFromString(response, "image/svg+xml");
+      svgPathElement = svgDoc.querySelector("path");
+      // 2. setup all matter.js related things
+      // setupMatter(svgPathElement);
+    });
+  }
+
+function setupMatter(svgPathElement) {
+    // use the path from the svg file to create the corresponding matter object
+    path = bodyFromPath(svgPathElement, 180, 300, { isStatic: false, friction: 0.0 });
+
+    engine = Engine.create();
+    World.add(engine.world, path);
+    // Engine.run(engine);
+}
 
 function setup() {
     const canvas = createCanvas(absoluteScreenWidth, absoluteScreenHeight);
@@ -53,11 +69,14 @@ function setup() {
     world = engine.world;
     engine.world.gravity.y = 0;
     
+    // Load the SVG
+    setupMatter(svgPathElement);
+
     //------------------------Bridge Stuff Start------------------------//
 
     // adding bridge
     const group = Body.nextGroup(true);
-    const rects = Composites.stack(100, 102, 1, 35, 30, 5, function(x, y) {
+    const rects = Composites.stack(100, 102, 1, 35, 30, 10, function(x, y) {
         //stack syntax: xx, yy, col, row, colGap, rowGap, callback
         return Bodies.rectangle(x, y, 10, 10, { 
             collisionFilter: { group: group },
@@ -106,6 +125,9 @@ function setup() {
 
     testCircle = new Particle(100, 100, 20);
 
+    // path = bodyFromPath(svgPathElement, 180, 300, { isStatic: true, friction: 0.0 });
+    // World.add(engine.world, [path]);
+
     // run the engine
     Engine.run(engine);
 }
@@ -132,7 +154,9 @@ function draw() {
     drawBodies(bridge.bodies);
     drawBody(ball);
     
-    testCircle.show();
+    // testCircle.show();
+
+    drawBody(path);
 
     drawMouse(mouseConstraint);
 }
