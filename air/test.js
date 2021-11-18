@@ -13,8 +13,7 @@ const drawMouse = Helpers.drawMouse;
 const drawBody = Helpers.drawBody;
 const drawBodies = Helpers.drawBodies;
 const bodyFromPath = Helpers.bodyFromPath;
-//^^ I have no idea what the difference is between this one and the one above
-//^^ Update, I think that's just to draw multiple bodies at hence (since a bridge is made of multiple bodies of rects)
+const drawSprite = Helpers.drawSprite;
 const drawConstraint = Helpers.drawConstraint;
 
 let engine;
@@ -37,8 +36,38 @@ let absoluteScreenHeight = screen.availHeight;
 
 // Stupid stuff
 let ball;
-
 let allSvgElements = [];
+
+// Sprites
+let planeImg;
+let planeBody;
+
+// Camera
+let cam;
+
+// Conditions
+let conditions = [];
+
+// Ragdoll
+let person;
+
+conditions.push(new Conditional(
+        () => {
+            return true;
+        },
+        () => {
+            Body.applyForce(planeBody, planeBody.position, {
+                x: -0.003,
+                y: 0
+            })
+        },
+        () => {
+            if(planeBody.position.y < -20) {
+                conditions.shift();
+            }
+        }
+    )
+)
 
 // This code will error when:
     //     There is no SVG file found
@@ -63,13 +92,13 @@ function preload() {
     world = engine.world;
 
     engine.world.gravity.y = 0; // Set gravity to 0
-    addSvgElement("./resources/plane.svg");
+    // addSvgElement("./resources/plane.svg");
 }
 
 function setup() {
-    const canvas = createCanvas(absoluteScreenWidth, absoluteScreenHeight);
+    const canvas = createCanvas(absoluteScreenWidth, absoluteScreenHeight, WEBGL);
 
-    
+    cam = createCamera();
 
     //------------------------Bridge Stuff Start------------------------//
 
@@ -85,6 +114,7 @@ function setup() {
     bridge = Composites.chain(rects, 0.5, 0, -0.5, 0, {stiffness: 1.0, length: 1.0, render: {type: 'line'}});
     //Composites syntax: composite, xOffsetA, yOffsetA, xOffsetB, yOffsetB, options(Ie stiffness, length, etc)
     World.add(engine.world, [bridge]);
+    // Body.setStatic(bridge, true);
 
     // left and right fix point of slingshot
 
@@ -105,9 +135,14 @@ function setup() {
     })
     Composite.add(rects, bridgeRightConstraint);
 
-    // add ball
-    ball = Bodies.circle(400, 400, 20);
-    World.add(engine.world, [ball]);
+    // planeImg = loadImage("resources/planeImg.png");
+    planeBody = Bodies.rectangle(800, 400, 113, 33);
+    // Body.scale(planeBody, 1, 10);
+    planeImg = loadImage("resources/plainPlane.png");
+    World.add(engine.world, planeBody);
+
+    hookBody = Bodies.rectangle(790, 400, 10, 200);
+    World.add(engine.world, hookBody);
     
     // setup mouse
     const mouse = Mouse.create(canvas.elt);
@@ -120,27 +155,41 @@ function setup() {
     World.add(engine.world, mouseConstraint);
 
     //--------------------- Begin forces setup -------------------------//
-    bridge.bodies[bridge.bodies.length/2]
+    bridge.bodies[bridge.bodies.length/2];
 
-    // path = bodyFromPath(svgPathElement, 180, 300, { isStatic: true, friction: 0.0 });
-    // World.add(engine.world, [path]);
+    person = createRagdoll(0, 0);
 
     // run the engine
     Engine.run(engine);
 }
 
+function followMainBody(mainBody) {
+    cam.setPosition(mainBody.position.x, mainBody.position.y, 1000);
+}
+
 function draw() {
+    rectMode(CENTER);
+    
+    followMainBody(planeBody);
+    // translate(-width/2,-height/2,0); //moves our drawing origin to the top left corner
     background(0);
-    noStroke();
     fill(128);
     stroke(128);
     strokeWeight(2);
     drawConstraint(bridgeLeftConstraint);
     drawConstraint(bridgeRightConstraint);
     drawBodies(bridge.bodies);
-    drawBody(ball);
+    // drawBody(ball);
+    drawSprite(planeBody, planeImg);
 
-    drawBodies(allSvgElements);
+    // drawBodies(allSvgElements);
+
+    if(conditions.length > 0) {
+        if(conditions[0].check()) {
+            conditions[0].onFulfill();
+            conditions[0].onFinished();
+        }
+    }
 
     drawMouse(mouseConstraint);
 }
