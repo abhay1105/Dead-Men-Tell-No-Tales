@@ -10,7 +10,7 @@ class IceParticlePlinko {
     }
     show() {
         fill(this.rgb);
-        stroke(255);
+        stroke(this.rgb);
         var pos = this.body.position;
         push();
         translate(pos.x, pos.y);
