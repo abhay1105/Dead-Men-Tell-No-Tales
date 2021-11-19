@@ -57,12 +57,29 @@ conditions.push(new Conditional(
         },
         () => {
             Body.applyForce(planeBody, planeBody.position, {
-                x: -0.003,
+                x: 0.05,
                 y: 0
             })
         },
         () => {
-            if(planeBody.position.y < -20) {
+            if(planeBody.position.x > 8000) {
+                conditions.shift();
+            }
+        }
+    )
+)
+
+conditions.push(new Conditional(
+        () => {
+            console.log(planeBody.position.x);
+            return planeBody.position.x > 8000;
+        },
+        () => {
+            console.log(1000 - camZoom);
+            camZoom += 1;
+        },
+        () => {
+            if(planeBody.position.x > 15000) {
                 conditions.shift();
             }
         }
@@ -100,49 +117,16 @@ function setup() {
 
     cam = createCamera();
 
-    //------------------------Bridge Stuff Start------------------------//
-
-    // adding bridge
-    const group = Body.nextGroup(true);
-    const rects = Composites.stack(100, 102, 1, 30, 10, 10, function(x, y) {
-        //stack syntax: xx, yy, col, row, colGap, rowGap, callback
-        return Bodies.rectangle(x, y, 10, 10, { 
-            collisionFilter: { group: group },
-            // isStatic: true,
-        });
+    planeImg = loadImage("resources/Plane.png");
+    planeBody = Bodies.rectangle(800, 375, 226, 66, {
+        render: {
+            sprite: {
+                texture: "resources/Plane.png"
+            }
+        }
     });
-    bridge = Composites.chain(rects, 0.5, 0, -0.5, 0, {stiffness: 1.0, length: 1.0, render: {type: 'line'}});
-    //Composites syntax: composite, xOffsetA, yOffsetA, xOffsetB, yOffsetB, options(Ie stiffness, length, etc)
-    World.add(engine.world, [bridge]);
-    // Body.setStatic(bridge, true);
-
-    // left and right fix point of slingshot
-
-    bridgeLeftConstraint = Constraint.create({
-      pointA: {x: 175, y: 100}, // Original point
-      bodyB: rects.bodies[0],
-      pointB: {x: 0, y: 0},
-      stiffness: 0.05
-    })
-
-    Composite.add(rects, bridgeLeftConstraint);
-
-    bridgeRightConstraint = Constraint.create({
-      pointA: {x: 175, y: 625},
-      bodyB: rects.bodies[rects.bodies.length-1],
-      pointB: {x: 0, y: 0},
-      stiffness: 0.05
-    })
-    Composite.add(rects, bridgeRightConstraint);
-
-    // planeImg = loadImage("resources/planeImg.png");
-    planeBody = Bodies.rectangle(800, 400, 113, 33);
-    // Body.scale(planeBody, 1, 10);
-    planeImg = loadImage("resources/plainPlane.png");
+    Body.scale(planeBody, 2, 2);
     World.add(engine.world, planeBody);
-
-    hookBody = Bodies.rectangle(790, 400, 10, 200);
-    World.add(engine.world, hookBody);
     
     // setup mouse
     const mouse = Mouse.create(canvas.elt);
@@ -154,35 +138,37 @@ function setup() {
     mouseConstraint.mouse.pixelRatio = pixelDensity();
     World.add(engine.world, mouseConstraint);
 
-    //--------------------- Begin forces setup -------------------------//
-    bridge.bodies[bridge.bodies.length/2];
-
-    person = createRagdoll(0, 0);
-
     // run the engine
     Engine.run(engine);
 }
 
 function followMainBody(mainBody) {
-    cam.setPosition(mainBody.position.x, mainBody.position.y, 1000);
+    cam.setPosition(mainBody.position.x, mainBody.position.y, 1000 - camZoom);
 }
+
+let camZoom = 0;
 
 function draw() {
     rectMode(CENTER);
     
     followMainBody(planeBody);
     // translate(-width/2,-height/2,0); //moves our drawing origin to the top left corner
-    background(0);
+    
+    background(43, 184, 255);
+    noStroke();
+    
+    fill(115, 115, 115, 255);
+    rect(0, 350, 10000, 800);
+
+    fill(252, 186, 3);
+    for(let i = 0; i < 14; i++) { 
+        rect(100 + i * 350, 375, 200, 50);
+    }
+    
     fill(128);
     stroke(128);
     strokeWeight(2);
-    drawConstraint(bridgeLeftConstraint);
-    drawConstraint(bridgeRightConstraint);
-    drawBodies(bridge.bodies);
-    // drawBody(ball);
     drawSprite(planeBody, planeImg);
-
-    // drawBodies(allSvgElements);
 
     if(conditions.length > 0) {
         if(conditions[0].check()) {
