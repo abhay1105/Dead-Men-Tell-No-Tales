@@ -12,12 +12,22 @@ const drawBody = Helpers.drawBody;
 const drawMouse = Helpers.drawMouse;
 const drawConstraint = Helpers.drawConstraint;
 
+
+// ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
+// ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
+// ██║██║░░╚═╝█████╗░░  █████╗░░██╔██╗██║╚██╗░██╔╝██║██████╔╝██║░░██║██╔██╗██║██╔████╔██║█████╗░░██╔██╗██║░░░██║░░░
+// ██║██║░░██╗██╔══╝░░  ██╔══╝░░██║╚████║░╚████╔╝░██║██╔══██╗██║░░██║██║╚████║██║╚██╔╝██║██╔══╝░░██║╚████║░░░██║░░░
+// ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
+// ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
+
+// BEGINNING OF ICE VARIABLE INITIALIZATION
+
 // ice environment
 let iceCamera;
 let ice_x = 0;
 let ice_y = 0;
 
-// ice bodies
+// ice bodies and booleans/arrays
 let ice_starting_rectangle;
 let second_ice_starting_rectangle;
 let ice_starting_raised_rectangle;
@@ -37,12 +47,23 @@ let ice_plinko_ball_left_wall;
 let ice_plinko_ball_right_wall;
 let ice_plinko_ball_door;
 let ice_plinko_balls = [];
+let ice_plinko_left_boundary;
+let ice_plinko_right_boundary;
 
 // ice images
 let ice_flag_image;
 
-// ice conditions
+// ice conditions array
 var ice_conditions = [];
+
+// END OF ICE VARIABLE INITIALIZATION
+
+// ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
+// ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
+// ██║██║░░╚═╝█████╗░░  █████╗░░██╔██╗██║╚██╗░██╔╝██║██████╔╝██║░░██║██╔██╗██║██╔████╔██║█████╗░░██╔██╗██║░░░██║░░░
+// ██║██║░░██╗██╔══╝░░  ██╔══╝░░██║╚████║░╚████╔╝░██║██╔══██╗██║░░██║██║╚████║██║╚██╔╝██║██╔══╝░░██║╚████║░░░██║░░░
+// ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
+// ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
 
 let engine;
 let particles = [];
@@ -61,6 +82,15 @@ function preload() {
     ice_flag_image = loadImage("flag.png");
 }
 
+// ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
+// ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
+// ██║██║░░╚═╝█████╗░░  █████╗░░██╔██╗██║╚██╗░██╔╝██║██████╔╝██║░░██║██╔██╗██║██╔████╔██║█████╗░░██╔██╗██║░░░██║░░░
+// ██║██║░░██╗██╔══╝░░  ██╔══╝░░██║╚████║░╚████╔╝░██║██╔══██╗██║░░██║██║╚████║██║╚██╔╝██║██╔══╝░░██║╚████║░░░██║░░░
+// ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
+// ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
+
+// BEGINNING OF ICE FUNCTIONS
+
 function randomNumber(lowerBound, upperBound) {
     return Math.floor((Math.random() * upperBound) + lowerBound);
 }
@@ -71,7 +101,6 @@ function createPegs(x, y, rows, columns, spacing, radius) {
     var tempX = startX + 0.5 * (spacing + 2 * radius);
     var tempY = y;
     for (var i = 0;i < rows;i++) {
-        console.log("TEMP X:   " + tempX);
         for (var j = 0;j < columns;j++) {
             pegs.push(new IceParticlePeg(tempX, tempY, radius));
             tempX += spacing + 2 * radius;
@@ -109,6 +138,15 @@ function moveCamera(newPositionX, newPositionY, newPositionZ) {
     iceCamera.move(newPositionX, newPositionY, newPositionZ);
 }
 
+// END OF ICE FUNCTIONS
+
+// ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
+// ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
+// ██║██║░░╚═╝█████╗░░  █████╗░░██╔██╗██║╚██╗░██╔╝██║██████╔╝██║░░██║██╔██╗██║██╔████╔██║█████╗░░██╔██╗██║░░░██║░░░
+// ██║██║░░██╗██╔══╝░░  ██╔══╝░░██║╚████║░╚████╔╝░██║██╔══██╗██║░░██║██║╚████║██║╚██╔╝██║██╔══╝░░██║╚████║░░░██║░░░
+// ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
+// ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
+
 function setup() {
 
     // create the canvas, engine, and the camera
@@ -117,15 +155,23 @@ function setup() {
     world = engine.world;
     iceCamera = createCamera();
     moveCamera(ice_x + 400, ice_y + 500, 0);
+    // moveCamera(ice_x + 2000, ice_y + 3400, 1500);
 
-    // create all ice objects here
+    // ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
+    // ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
+    // ██║██║░░╚═╝█████╗░░  █████╗░░██╔██╗██║╚██╗░██╔╝██║██████╔╝██║░░██║██╔██╗██║██╔████╔██║█████╗░░██╔██╗██║░░░██║░░░
+    // ██║██║░░██╗██╔══╝░░  ██╔══╝░░██║╚████║░╚████╔╝░██║██╔══██╗██║░░██║██║╚████║██║╚██╔╝██║██╔══╝░░██║╚████║░░░██║░░░
+    // ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
+    // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
+
+    // BEGINNING OF ICE SETUP CODE
+
+    // creating all of the bodies
     ice_starting_rectangle = Bodies.rectangle(ice_x + 330, ice_y + 420, 660, 60, { isStatic: true });
     second_ice_starting_rectangle = Bodies.rectangle(ice_x + 1160, ice_y + 420, 1000, 60, { isStatic: true });
     ice_starting_raised_rectangle = Bodies.rectangle(ice_x + 330, ice_y + 370, 660, 40, { isStatic: true });
-    // pegs = createPegs(500, 600, 5, 14, 98, 10);
     ice_starting_dominoes = createDominoes(ice_x + 700, ice_y + 340, 20, 100, 14, 20);
     ice_main_body = Bodies.circle(ice_x + 100, ice_y + 300, 40, { density: 0.1 });
-    // ice_starting_flag = new Flag(ice_flag_image, ice_x + 1460, ice_y + 400);
     ice_starting_flag = Bodies.rectangle(ice_x + 1260, ice_y + 360, 60, 60, { isStatic: true });
     ice_curve_vertices = [
         { x : 0 , y : 0 },
@@ -156,7 +202,31 @@ function setup() {
     ice_plinko_ball_left_wall = Bodies.rectangle(ice_x + 1900, ice_y + 200, 20, 1000, { isStatic: true });
     ice_plinko_ball_right_wall = Bodies.rectangle(ice_x + 3240, ice_y + 200, 20, 1000, { isStatic: true });
     ice_plinko_ball_door = Bodies.rectangle(ice_x + 2570, ice_y + 690, 1360, 20, { isStatic: true });
-    ice_plinko_balls = createPlinkoBalls(120, ice_x + 2570, ice_y + 200);
+    ice_plinko_balls = createPlinkoBalls(100, ice_x + 2570, ice_y + 200);
+    ice_plinko_left_boundary = Bodies.rectangle(ice_x + 1350, ice_y + 4000, 20, 3000, { isStatic: true, rotation: 30 });
+    Body.rotate(ice_plinko_left_boundary, 3);
+    ice_plinko_right_boundary = Bodies.rectangle(ice_x + 3875, ice_y + 4000, 20, 3000, { isStatic: true, rotation: 30 });
+    Body.rotate(ice_plinko_right_boundary, -3);
+
+    // adding all bodies into one array and adding them into the world
+    var iceBodies = [ice_starting_rectangle, second_ice_starting_rectangle, ice_main_body, ice_starting_raised_rectangle, ice_starting_flag, ice_curve, second_ice_flag, ice_plinko_pegs, ice_landing_rectangle, 
+        third_ice_flag, ice_plinko_ball_cover, ice_plinko_ball_left_wall, ice_plinko_ball_right_wall, ice_plinko_ball_door, ice_plinko_left_boundary, ice_plinko_right_boundary];
+    for (var i = 0;i < ice_starting_dominoes.length;i++) {
+        iceBodies.push(ice_starting_dominoes[i]);
+    }
+    for (var j = 0;j < ice_plinko_balls.length;j++) {
+        iceBodies.push(ice_plinko_balls[j]);
+    }
+    World.add(world, iceBodies);
+
+    // END OF ICE SETUP CODE
+
+    // ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
+    // ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
+    // ██║██║░░╚═╝█████╗░░  █████╗░░██╔██╗██║╚██╗░██╔╝██║██████╔╝██║░░██║██╔██╗██║██╔████╔██║█████╗░░██╔██╗██║░░░██║░░░
+    // ██║██║░░██╗██╔══╝░░  ██╔══╝░░██║╚████║░╚████╔╝░██║██╔══██╗██║░░██║██║╚████║██║╚██╔╝██║██╔══╝░░██║╚████║░░░██║░░░
+    // ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
+    // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
 
     // setup mouse
     // mouse = Mouse.create(canvas.elt);
@@ -168,21 +238,19 @@ function setup() {
     // mouseConstraint.mouse.pixelRatio = pixelDensity();
     // World.add(world, mouseConstraint);
 
-    // adding all ice objects into one ice bodies array
-    var iceBodies = [ice_starting_rectangle, second_ice_starting_rectangle, ice_main_body, ice_starting_raised_rectangle, ice_starting_flag, ice_curve, second_ice_flag, ice_plinko_pegs, ice_landing_rectangle, 
-        third_ice_flag, ice_plinko_ball_cover, ice_plinko_ball_left_wall, ice_plinko_ball_right_wall, ice_plinko_ball_door];
-    for (var i = 0;i < ice_starting_dominoes.length;i++) {
-        iceBodies.push(ice_starting_dominoes[i]);
-    }
-    for (var j = 0;j < ice_plinko_balls.length;j++) {
-        iceBodies.push(ice_plinko_balls[j]);
-    }
-    World.add(world, iceBodies);
-
     // run the engine
     Engine.run(engine);
 
 }
+
+// ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
+// ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
+// ██║██║░░╚═╝█████╗░░  █████╗░░██╔██╗██║╚██╗░██╔╝██║██████╔╝██║░░██║██╔██╗██║██╔████╔██║█████╗░░██╔██╗██║░░░██║░░░
+// ██║██║░░██╗██╔══╝░░  ██╔══╝░░██║╚████║░╚████╔╝░██║██╔══██╗██║░░██║██║╚████║██║╚██╔╝██║██╔══╝░░██║╚████║░░░██║░░░
+// ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
+// ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
+
+// BEGINNING OF ICE CONDITIONS CODE
 
 var firstTime = true;
 
@@ -220,12 +288,32 @@ ice_conditions.push(
       () => {
         third_ice_flag_checkpoint = true;
         World.remove(world, ice_plinko_ball_door);
+        moveCamera(0, 1000, 0);
       }
     )
 );
 
+// END OF ICE CONDITIONS CODE
+
+// ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
+// ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
+// ██║██║░░╚═╝█████╗░░  █████╗░░██╔██╗██║╚██╗░██╔╝██║██████╔╝██║░░██║██╔██╗██║██╔████╔██║█████╗░░██╔██╗██║░░░██║░░░
+// ██║██║░░██╗██╔══╝░░  ██╔══╝░░██║╚████║░╚████╔╝░██║██╔══██╗██║░░██║██║╚████║██║╚██╔╝██║██╔══╝░░██║╚████║░░░██║░░░
+// ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
+// ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
+
 function draw() {
 
+    // ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
+    // ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
+    // ██║██║░░╚═╝█████╗░░  █████╗░░██╔██╗██║╚██╗░██╔╝██║██████╔╝██║░░██║██╔██╗██║██╔████╔██║█████╗░░██╔██╗██║░░░██║░░░
+    // ██║██║░░██╗██╔══╝░░  ██╔══╝░░██║╚████║░╚████╔╝░██║██╔══██╗██║░░██║██║╚████║██║╚██╔╝██║██╔══╝░░██║╚████║░░░██║░░░
+    // ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
+    // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
+
+    // BEGINNING OF ICE BIOME DRAW CODE
+
+    // checking certain conditions before drawing process begins
     if (ice_conditions.length > 0) {
         for (var i = ice_conditions.length - 1;i >= 0;i--) {
             condition = ice_conditions[i];
@@ -236,21 +324,12 @@ function draw() {
         }
     }
 
-    // Engine.update(engine);
-
-    // ice biome draw code
-
-    // if (frameCount % 30 == 0) {
-    //     var x = randomNumber(100, screen.availWidth - 100);
-    //     var y = 20;
-    //     var radius = 20;
-    //     var p = new IceParticlePlinko(x, y, radius, "rgb(" + randomNumber(1, 255) + "," + randomNumber(1, 255) + "," + randomNumber(1, 255) + ")");
-    //     particles.push(p);
-    // }
-
+    // initial drawing
     background(0);
     fill(255);
     stroke(255);
+
+    // drawing most of our static bodies
     drawBody(ice_starting_rectangle);
     drawBody(ice_starting_raised_rectangle);
     drawBody(second_ice_starting_rectangle);
@@ -259,7 +338,22 @@ function draw() {
     drawBody(ice_plinko_ball_cover);
     drawBody(ice_plinko_ball_left_wall);
     drawBody(ice_plinko_ball_right_wall);
+    drawBody(ice_plinko_left_boundary);
+    drawBody(ice_plinko_right_boundary);
 
+    // for specifically drawing any rotating bodies
+    // var vertice_drawing_group = [];
+    // for (let j = 0; j < vertice_drawing_group.length; j++) {
+    //     var vertices = vertice_drawing_group[j].vertices;
+    //     console.log(vertices);
+    //     beginShape();
+    //     for (var i = 0; i < vertices.length; i++) {
+    //         vertex(vertices[i].x, vertices[i].y);
+    //     }
+    //     endShape();
+    // }
+
+    // if-statements to check for flag collisions and color changes
     if (ice_starting_flag_checkpoint) {
         fill("rgb(0, 255, 0)");
         stroke("rgb(0, 255, 0)");
@@ -287,9 +381,9 @@ function draw() {
         stroke("rgb(255, 0, 0)");
     }
     drawBody(third_ice_flag);
-    // for (var i = 0;i < particles.length;i++) {
-    //     particles[i].show();
-    // }
+
+
+    // drawing the plinko pegs and balls
     for (var i = 0;i < ice_plinko_pegs.length;i++) {
         ice_plinko_pegs[i].show();
     }
@@ -310,10 +404,12 @@ function draw() {
         endShape();
     }
 
+    // drawing the main entity
     fill(255);
     stroke(255);
     drawBody(ice_main_body);
     
+    // starts the process after about 3 seconds
     if (firstTime && frameCount >= 180) {
         let x = ice_starting_dominoes[0].body.position.x;
         let y = ice_starting_dominoes[0].body.position.y;
@@ -321,5 +417,14 @@ function draw() {
         firstTime = false;
         moveCamera(500, 0, 0);
     }
+
+    // END OF ICE BIOME DRAW CODE
+
+    // ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
+    // ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
+    // ██║██║░░╚═╝█████╗░░  █████╗░░██╔██╗██║╚██╗░██╔╝██║██████╔╝██║░░██║██╔██╗██║██╔████╔██║█████╗░░██╔██╗██║░░░██║░░░
+    // ██║██║░░██╗██╔══╝░░  ██╔══╝░░██║╚████║░╚████╔╝░██║██╔══██╗██║░░██║██║╚████║██║╚██╔╝██║██╔══╝░░██║╚████║░░░██║░░░
+    // ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
+    // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
 
 }
