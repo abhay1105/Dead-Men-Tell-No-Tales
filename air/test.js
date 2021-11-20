@@ -16,72 +16,99 @@ const bodyFromPath = Helpers.bodyFromPath;
 const drawSprite = Helpers.drawSprite;
 const drawConstraint = Helpers.drawConstraint;
 
-let engine;
-let ground;
-
-// the top screw on
-let topConstraint;
-let bottomConstraint;
-let constraint4;
-
-//Bridge Var's
-let bridge;
-
-let bridgeLeftConstraint;
-let bridgeRightConstraint;
-
 // Canvas vars
 let absoluteScreenWidth = screen.availWidth;
 let absoluteScreenHeight = screen.availHeight;
 
-// Stupid stuff
-let ball;
-let allSvgElements = [];
+// Camera
+let airCam;
+
+let engine;
+let airX = 0;
+let airY = 0;
 
 // Sprites
-let planeImg;
-let planeBody;
+let airPlaneImg;
+let airPlaneBody;
+let airPlainPlaneImg;
+let airPlaneShadowImg;
+let airPlaneShadowBody;
+let airCloudImg;
 
-// Camera
-let cam;
+// Stupid Info
+let airCloudPositionMatrix = [];
+let airNumRowClouds = 30;
+let airNumColClouds = 50;
 
 // Conditions
-let conditions = [];
+let airConditions = [];
 
 // Ragdoll
-let person;
+let airPerson;
 
-conditions.push(new Conditional(
+// Trackers
+let airCamZoom = 0;
+let airTime = 0;
+
+// While it's on the carrier apply a force to the plane so that it accelerates
+airConditions.push(new Conditional(
         () => {
+            // while loop has it set to true
             return true;
         },
         () => {
-            Body.applyForce(planeBody, planeBody.position, {
+            // Apply a force so that it accelerates
+            image(airPlaneShadowImg, airPlaneBody.position.x - 175, 200);    
+            Body.applyForce(airPlaneBody, airPlaneBody.position, {
                 x: 0.05,
-                y: 0
+                y: 0,
             })
         },
         () => {
-            if(planeBody.position.x > 8000) {
-                conditions.shift();
+            // Once it passes the carrier zoom out
+            if(airPlaneBody.position.x > 4500) {
+                airConditions.shift();
+                airCamZoom++;
             }
         }
     )
 )
 
-conditions.push(new Conditional(
+// After it leaves the carrier zoom in and show the shadow
+airConditions.push(new Conditional(
         () => {
-            console.log(planeBody.position.x);
-            return planeBody.position.x > 8000;
+            return true;
         },
         () => {
-            console.log(1000 - camZoom);
-            camZoom += 1;
-        },
-        () => {
-            if(planeBody.position.x > 15000) {
-                conditions.shift();
+            // Zoom in
+            airCamZoom += 1;
+            // The shadow only appears near the carrier, so it'll start at an x and then travel slower than the plane does
+            if(airPlaneShadowImg.width > 1) {
+                image(airPlaneShadowImg, airPlaneBody.position.x - 175 - airCamZoom * 1.75, 200);
+                airPlaneShadowImg.resize(airPlaneShadowImg.width * 0.999, airPlaneShadowImg.height * 0.999);
             }
+            Body.applyForce(airPlaneBody, airPlaneBody.position, {
+                x: 0.05,
+                y: 0,
+            })
+        },
+        () => {
+            if(airCamZoom > 400) {
+                airConditions.shift();
+            }
+        }
+    )
+)
+
+airConditions.push(new Conditional(
+        () => {
+            return true;
+        },
+        () => {
+            airPlaneImg = airPlainPlaneImg;
+        },
+        () => {
+            airConditions.shift();
         }
     )
 )
@@ -109,26 +136,43 @@ function preload() {
     world = engine.world;
 
     engine.world.gravity.y = 0; // Set gravity to 0
-    // addSvgElement("./resources/plane.svg");
+
+    /*------------- Begin Clouds ---------------*/
+    for(let i = 0; i < airNumRowClouds; i++) {
+        let rowCloudPositions = [];
+        for(let j = 0; j < airNumColClouds; j++) {
+            let cloudx = 13500 + i*50*Math.random();
+            let cloudy = j*45*Math.random();
+            let cloudCoords = [cloudx, cloudy];
+            rowCloudPositions.push(cloudCoords);
+        }
+        airCloudPositionMatrix.push(rowCloudPositions);
+    }
+    /*------------- End Clouds -----------------*/
 }
 
 function setup() {
     const canvas = createCanvas(absoluteScreenWidth, absoluteScreenHeight, WEBGL);
 
-    cam = createCamera();
+    airCam = createCamera();
 
-    planeImg = loadImage("resources/Plane.png");
-    planeBody = Bodies.rectangle(800, 375, 226, 66, {
+    //---------------- Set up the plane body---------------------
+    airPlaneImg = loadImage("resources/Plane.png");
+    airPlainPlaneImg = loadImage("resources/plainPlane.png");
+    airPlaneBody = Bodies.rectangle(800, 375, 226, 66, {
         render: {
             sprite: {
                 texture: "resources/Plane.png"
             }
         }
     });
-    Body.scale(planeBody, 2, 2);
-    World.add(engine.world, planeBody);
+    Body.scale(airPlaneBody, 2, 2);
+    World.add(engine.world, airPlaneBody);
+
+    airPlaneShadowImg = loadImage("resources/Plane-Silhouette.png");
+    airCloudImg = loadImage("resources/cloud.png");
     
-    // setup mouse
+    //-------------------- setup mouse -----------------------
     const mouse = Mouse.create(canvas.elt);
     const mouseParams = {
         mouse: mouse,
@@ -138,44 +182,55 @@ function setup() {
     mouseConstraint.mouse.pixelRatio = pixelDensity();
     World.add(engine.world, mouseConstraint);
 
-    // run the engine
+    //------------------- run the engine ---------------------
     Engine.run(engine);
 }
 
 function followMainBody(mainBody) {
-    cam.setPosition(mainBody.position.x, mainBody.position.y, 1000 - camZoom);
+    airCam.setPosition(mainBody.position.x, mainBody.position.y, 1000 - airCamZoom);
 }
-
-let camZoom = 0;
 
 function draw() {
     rectMode(CENTER);
-    
-    followMainBody(planeBody);
-    // translate(-width/2,-height/2,0); //moves our drawing origin to the top left corner
-    
     background(43, 184, 255);
+    airTime++;
+
+    followMainBody(airPlaneBody);
+    // translate(-width/2,-height/2,0); //moves our drawing origin to the top left corner
+
+    /*------------ Begin Runway ---------------*/
     noStroke();
-    
     fill(115, 115, 115, 255);
     rect(0, 350, 10000, 800);
-
     fill(252, 186, 3);
     for(let i = 0; i < 14; i++) { 
         rect(100 + i * 350, 375, 200, 50);
     }
-    
+    /*-------------- End Runway ----------------*/
+
+    /*------------ Begin Conditions ------------*/
+    if(airConditions.length > 0) {
+        if(airConditions[0].check()) {
+            airConditions[0].onFulfill();
+            airConditions[0].onFinished();
+        }
+    }
+    /*------------- End Conditions -------------*/
+
+    /*------------- Begin Draw Plane -----------*/
     fill(128);
     stroke(128);
     strokeWeight(2);
-    drawSprite(planeBody, planeImg);
+    drawSprite(airPlaneBody, airPlaneImg);
+    /*------------ End Draw Plane --------------*/
 
-    if(conditions.length > 0) {
-        if(conditions[0].check()) {
-            conditions[0].onFulfill();
-            conditions[0].onFinished();
+    /*------------- Begin Clouds ---------------*/
+    for(let i = 0; i < airNumRowClouds; i++) {
+        for(let j = 0; j < airNumColClouds; j++) {
+            image(airCloudImg, airCloudPositionMatrix[i][j][0], airCloudPositionMatrix[i][j][1]);
         }
     }
+    /*------------ End Clouds ------------------*/
 
     drawMouse(mouseConstraint);
 }
