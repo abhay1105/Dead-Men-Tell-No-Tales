@@ -8,6 +8,8 @@ const MouseConstraint = Matter.MouseConstraint;
 const Constraint = Matter.Constraint;
 const Composites = Matter.Composites;
 const Composite = Matter.Composite;
+const Events = Matter.Events;
+const Vector = Matter.Vector;
 
 const drawMouse = Helpers.drawMouse;
 const drawBody = Helpers.drawBody;
@@ -82,7 +84,7 @@ airConditions.push(new Conditional(
         () => {
             // Zoom in
             airCamZoom += 1;
-            // The shadow only appears near the carrier, so it'll start at an x and then travel slower than the plane does
+            // The shadow only appears near the carrier, so it'll start 175px behind the plane then go back with time (camZoom = time)
             if(airPlaneShadowImg.width > 1) {
                 image(airPlaneShadowImg, airPlaneBody.position.x - 175 - airCamZoom * 1.75, 200);
                 airPlaneShadowImg.resize(airPlaneShadowImg.width * 0.999, airPlaneShadowImg.height * 0.999);
@@ -100,6 +102,7 @@ airConditions.push(new Conditional(
     )
 )
 
+// Switch image to sideways plane
 airConditions.push(new Conditional(
         () => {
             return true;
@@ -112,6 +115,57 @@ airConditions.push(new Conditional(
         }
     )
 )
+
+airConditions.push(new Conditional(
+        () => {
+
+        },
+        () => {
+
+        },
+        () => {
+
+        }
+    )
+)
+
+function createSpring(x, y, w, h, power) {
+    let trampoline = Bodies.rectangle(x, y, w, h)
+
+    let leftConstraint = Constraint.create({
+        bodyA: trampoline,
+        pointA: Vector.create(-(w * 0.5), 0),
+        pointB: Vector.add(Vector.create(-(w * 0.5), -(w * 0.5)), Matter.Vector.create(trampoline.position.x, trampoline.position.y)),
+        stiffness: 0.001,
+        render: {
+            visible: false,
+        }
+    })
+
+    let rightConstraint = Constraint.create({
+        bodyA: trampoline,
+        pointA: Vector.create((w * 0.5), 0),
+        pointB: Vector.add(Vector.create((w * 0.5), -(w * 0.5)), Matter.Vector.create(trampoline.position.x, trampoline.position.y)),
+        stiffness: 0.001,
+        render: {
+            visible: false,
+        }
+    })
+
+    World.add(engine.world, [trampoline, leftConstraint, rightConstraint])
+
+    Events.on(engine, "collisionStart", function (data) {
+        let pairs = data.pairs;
+        if (pairs && pairs.length > 0) {
+            for (let j = 0; j < pairs.length; j++) {
+                let on = pairs[j];
+                if (on.bodyB.id === trampoline.id) {
+                    Body.setVelocity(on.bodyA, Vector.add(Vector.create(10 * power, -50 * power), Vector.clone(on.bodyA.velocity)))
+                }
+            }
+        }
+    })
+}
 
 // This code will error when:
     //     There is no SVG file found
@@ -182,6 +236,8 @@ function setup() {
     mouseConstraint.mouse.pixelRatio = pixelDensity();
     World.add(engine.world, mouseConstraint);
 
+    createSpring(50, 50, 100, 100, 0);
+
     //------------------- run the engine ---------------------
     Engine.run(engine);
 }
@@ -211,7 +267,7 @@ function draw() {
     /*------------ Begin Conditions ------------*/
     if(airConditions.length > 0) {
         if(airConditions[0].check()) {
-            airConditions[0].onFulfill();
+            // airConditions[0].onFulfill();
             airConditions[0].onFinished();
         }
     }
