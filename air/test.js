@@ -18,16 +18,26 @@ const bodyFromPath = Helpers.bodyFromPath;
 const drawSprite = Helpers.drawSprite;
 const drawConstraint = Helpers.drawConstraint;
 
+let engine;
+
 // Canvas vars
-let absoluteScreenWidth = screen.availWidth;
-let absoluteScreenHeight = screen.availHeight;
+let absoluteScreenWidth = window.innerWidth;
+let absoluteScreenHeight = window.innerHeight;
 
 // Camera
-let airCam;
-
-let engine;
-let airX = 0;
-let airY = 0;
+let airCamera;
+let airCameraX = 0;
+let airCameraY = 0;
+let airCameraZ = 0;
+let airCameraChangeX = 0;
+let airCameraChangeY = 0;
+let airCameraChangeZ = 0;
+let airCameraPanTime;
+let airCameraMoving = false;
+let airCameraFollowMainBody = true;
+let AIR_FRAMES_PER_SECOND = 30;
+const AIR_OFFSET_X = 0;
+const AIR_OFFSET_Y = 0;
 
 // Sprites
 let airPlaneImg;
@@ -51,6 +61,43 @@ let airPerson;
 // Trackers
 let airCamZoom = 0;
 let airTime = 0;
+
+// Clouds
+let cloud1;
+
+// Windmills
+let windmills = [];
+let windmillCoords = [];
+
+let windmillVertices = [
+    { x: 5, y: 5 },
+    { x: 50, y: 5 },
+    { x: 50, y: 55 },
+    { x: 200, y: 55 },
+    { x: 200, y: 5 },
+    { x: 200, y: -5 },
+    { x: 5, y: -5 },
+    { x: 5, y: -50 },
+    { x: 55, y: -50 },
+    { x: 55, y: -200 },
+    { x: 5, y: -200 },
+    { x: -5, y: -200 },
+    { x: -5, y: -5 },
+    { x: -50, y: -5 },
+    { x: -50, y: -55 },
+    { x: -200, y: -55 },
+    { x: -200, y: -5 },
+    { x: -200, y: 5 },
+    { x: -5, y: 5 },
+    { x: -5, y: 50 },
+    { x: -55, y: 50 },
+    { x: -55, y: 200 },
+    { x: -5, y: 200 },
+    { x: 5, y: 200 },
+];
+let windmillBlades;
+
+/*---------------------------- Begin Air Conditionals ---------------------------------*/
 
 // While it's on the carrier apply a force to the plane so that it accelerates
 airConditions.push(new Conditional(
@@ -109,6 +156,9 @@ airConditions.push(new Conditional(
         },
         () => {
             airPlaneImg = airPlainPlaneImg;
+            console.log(airPlaneBody.position.x);
+            setMassCentre(airPlaneBody, {x: 1000, y: 0});
+            console.log(airPlaneBody.position.x);
         },
         () => {
             airConditions.shift();
@@ -118,16 +168,47 @@ airConditions.push(new Conditional(
 
 airConditions.push(new Conditional(
         () => {
-
+            return airPlaneBody.position.x >= 15600;
         },
         () => {
-
+            Body.setVelocity(airPlaneBody, Vector.create(0, 0));
+            airCameraFollowMainBody = false;
+            moveCameraPan(550, 0, 500, 5); // Function Syntax: changeX, changeY, changeZ, durationInSeconds
         },
         () => {
-
+            airConditions.shift();
         }
     )
 )
+
+/* ------------------------------- End Air Conditionals -----------------------------------*/
+/*------------------------------ Begin Camera Functions -----------------------------------*/
+
+function followMainBody(mainBody) {
+    airCameraX = mainBody.position.x;
+    airCameraY = mainBody.position.y;
+    airCameraZ = 1000 - airCamZoom;
+    airCamera.setPosition(mainBody.position.x, mainBody.position.y, 1000 - airCamZoom);
+}
+
+function moveCameraPan(changeX, changeY, changeZ, durationInSeconds) {
+    airCameraMoving = true;
+    var totalFrames = durationInSeconds * AIR_FRAMES_PER_SECOND;
+    airCameraPanTime = totalFrames;
+    airCameraChangeX = changeX / totalFrames;
+    airCameraChangeY = changeY / totalFrames;
+    airCameraChangeZ = changeZ / totalFrames;
+}
+
+function moveCamera(changeX, changeY, changeZ) {
+    airCameraX += changeX;
+    airCameraY += changeY;
+    airCameraZ += changeZ;
+    airCamera.move(changeX, changeY, changeZ);
+}
+
+/*---------------------------------- End Camera Functions ---------------------------------*/
+/* ----------------------------- Begin Component Functions --------------------------------*/
 
 function createSpring(x, y, w, h, power) {
     let trampoline = Bodies.rectangle(x, y, w, h)
@@ -167,6 +248,38 @@ function createSpring(x, y, w, h, power) {
     })
 }
 
+function createWindmill(x, y, towerHeight, rotationOffset) {
+    windmillCoords.push([x, y - towerHeight/2]);
+    let tower = Bodies.rectangle(x, y, 50, towerHeight);
+    let topOfTower = Vector.create(x, y - towerHeight / 2);
+    windmillBlades = Bodies.fromVertices(
+        x,
+        y - towerHeight / 2,
+        windmillVertices, 
+        { isStatic: true, friction: 0 }, 
+        [flagInternal=false], 
+        [removeCollinear=0.01], 
+        [minimumArea=10], 
+        [removeDuplicatePoints=0.01]
+    );
+    Body.rotate(windmillBlades, rotationOffset, topOfTower);
+    constraint = Constraint.create({
+        pointA: {x: x, y: y - towerHeight/2},
+        bodyB: windmillBlades,
+        stiffness: 1,
+        length: 0
+    });
+    World.add(engine.world, [windmillBlades, constraint]);
+    return [tower, windmillBlades];
+}
+
+function setMassCentre(body, offset) {
+    body.position.x += offset.x;
+    body.position.y += offset.y;
+    body.positionPrev.x += offset.x;
+    body.positionPrev.y += offset.y;
+}
+
 // This code will error when:
     //     There is no SVG file found
     //     You don't import the pathseg and decomp files in your index.html
@@ -183,6 +296,9 @@ function addSvgElement(resourcePath) {
         World.add(engine.world, svgBody);
     });
 }
+
+/*------------------------------ End Component Functions ------------------------------------*/
+/*--------------------------------- Begin P5 Functions --------------------------------------*/
 
 function preload() {
     // create an engine
@@ -206,11 +322,15 @@ function preload() {
 }
 
 function setup() {
-    const canvas = createCanvas(absoluteScreenWidth, absoluteScreenHeight, WEBGL);
+    createCanvas(absoluteScreenWidth, absoluteScreenHeight, WEBGL);
 
-    airCam = createCamera();
+    /*------------ Camera Setup ----------------*/
+    airCamera = createCamera();
+    airCameraX = airCamera.centerX;
+    airCameraY = airCamera.centerY;
+    airCameraZ = airCamera.centerZ;
 
-    //---------------- Set up the plane body---------------------
+    /*---------------- Set up the plane body---------------------*/
     airPlaneImg = loadImage("resources/Plane.png");
     airPlainPlaneImg = loadImage("resources/plainPlane.png");
     airPlaneBody = Bodies.rectangle(800, 375, 226, 66, {
@@ -226,34 +346,43 @@ function setup() {
     airPlaneShadowImg = loadImage("resources/Plane-Silhouette.png");
     airCloudImg = loadImage("resources/cloud.png");
     
-    //-------------------- setup mouse -----------------------
-    const mouse = Mouse.create(canvas.elt);
-    const mouseParams = {
-        mouse: mouse,
-        constraint: { stiffness: 0.05 }
-    }
-    mouseConstraint = MouseConstraint.create(engine, mouseParams);
-    mouseConstraint.mouse.pixelRatio = pixelDensity();
-    World.add(engine.world, mouseConstraint);
+    // Add components such as springs and windmills
+    createSpring(16000, 50, 100, 100, 0);
+    let windmill1 = createWindmill(16500, 650, 400, 0);
+    let windmill2 = createWindmill(16800, 160, 500, Math.PI + 0.16);
+    let windmill3 = createWindmill(17100, 690, 270, 0);
+    windmills = [windmill1, windmill2, windmill3];
 
-    createSpring(50, 50, 100, 100, 0);
-
-    //------------------- run the engine ---------------------
+    //run the engine
     Engine.run(engine);
 }
 
-function followMainBody(mainBody) {
-    airCam.setPosition(mainBody.position.x, mainBody.position.y, 1000 - airCamZoom);
-}
-
 function draw() {
+
+    /*------------------------ Camera Panning ---------------------------*/
+
+    if(!airCameraFollowMainBody) {
+        if (airCameraMoving) {
+            airCameraX += airCameraChangeX;
+            airCameraY += airCameraChangeY;
+            airCameraZ += airCameraChangeZ;
+            moveCamera(airCameraChangeX, airCameraChangeY, airCameraChangeZ);
+            if(airCameraPanTime <= 0){
+                airCameraMoving = false;
+            }
+            airCameraPanTime--;
+        }
+    } else {
+        followMainBody(airPlaneBody);
+    }
+
+    /*---------------------- End Camera Panning ------------------------*/
+
+    // Background Stuff
     rectMode(CENTER);
     background(43, 184, 255);
     airTime++;
-
-    followMainBody(airPlaneBody);
-    // translate(-width/2,-height/2,0); //moves our drawing origin to the top left corner
-
+    
     /*------------ Begin Runway ---------------*/
     noStroke();
     fill(115, 115, 115, 255);
@@ -267,7 +396,7 @@ function draw() {
     /*------------ Begin Conditions ------------*/
     if(airConditions.length > 0) {
         if(airConditions[0].check()) {
-            // airConditions[0].onFulfill();
+            airConditions[0].onFulfill();
             airConditions[0].onFinished();
         }
     }
@@ -278,15 +407,27 @@ function draw() {
     stroke(128);
     strokeWeight(2);
     drawSprite(airPlaneBody, airPlaneImg);
+    
+    fill('red');
+    ellipse(airPlaneBody.position.x, airPlaneBody.position.y, 10, 10);
     /*------------ End Draw Plane --------------*/
 
-    /*------------- Begin Clouds ---------------*/
+    /*-------------- Begin Clouds --------------*/
     for(let i = 0; i < airNumRowClouds; i++) {
         for(let j = 0; j < airNumColClouds; j++) {
             image(airCloudImg, airCloudPositionMatrix[i][j][0], airCloudPositionMatrix[i][j][1]);
         }
     }
-    /*------------ End Clouds ------------------*/
+    /*--------------- End Clouds ---------------*/
 
-    drawMouse(mouseConstraint);
+    /*-------------- Draw Windmill -------------*/
+    /*-------------- Draw Windmill -------------*/
+    for(var i = 0; i < windmills.length; i++) {
+        let windmill = windmills[i];
+        // Body.setPosition(windmill, windmillCoords[i][0], windmillCoords[i][1]);
+        fill(133, 98, 1);
+        drawBody(windmill[0]);
+        fill(255, 255, 255);
+        drawBody(windmill[1]);
+    }
 }
