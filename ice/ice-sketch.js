@@ -7,8 +7,11 @@ const Body = Matter.Body;
 const Mouse = Matter.Mouse;
 const MouseConstraint = Matter.MouseConstraint;
 const Constraint = Matter.Constraint;
+const Composite = Matter.Composite;
+const Composites = Matter.Composites;
 
 const drawBody = Helpers.drawBody;
+const drawBodies = Helpers.drawBodies;
 const drawMouse = Helpers.drawMouse;
 const drawConstraint = Helpers.drawConstraint;
 
@@ -23,6 +26,10 @@ const drawConstraint = Helpers.drawConstraint;
 // BEGINNING OF ICE VARIABLE INITIALIZATION
 
 // ice environment
+let ice_x = 0;
+let ice_y = 0;
+
+// camera settings
 let iceCamera;
 // current position
 let iceCameraX = 0;
@@ -36,12 +43,23 @@ let iceCameraChangeZ = 0;
 let iceCameraTargetX = 0;
 let iceCameraTargetY = 0;
 let iceCameraTargetZ = 0;
+// extra settings
 let iceCameraMoving = false;
 let iceCameraPanningSpeed = 5;
 let useIceCameraPanning = true;
 let iceFramesPerSecond = 30;
-let ice_x = 0;
-let ice_y = 0;
+let iceCameraDebugging = false;
+
+// sound settings
+let iceSoundPlaying = false;
+let iceVolume = 0.1;
+let iceOnClicked = false;
+
+var ice_pieces, ice_radius, ice_fft, ice_mapMouseX, ice_mapMouseY, ice_audio;
+var ice_colorPalette = ["#0f0639", "#ff006a", "#ff4f00", "#00f9d9"];
+
+let ice_first_time_audio = true;
+let ice_audio_setup_completed = false;
 
 // ice bodies and booleans/arrays
 let ice_starting_rectangle;
@@ -73,6 +91,13 @@ let ice_slant_one;
 let ice_slant_two;
 let ice_slant_three;
 let ice_slant_four;
+let ice_basket_left_wall;
+let ice_basket_right_wall;
+let ice_basket_bottom;
+let ice_lever;
+let ice_chain;
+let ice_chain_links;
+let ice_chain_constraint;
 
 // ice images
 let ice_flag_image;
@@ -95,15 +120,13 @@ let pegs = [];
 let mouse;
 let mouseConstraint;
 
+let attractorBody;
+
 class Conditions {
     constructor(checkFunction, onceDoneFunction) {
       this.check = checkFunction;
       this.onceDone = onceDoneFunction;
     }
-}
-
-function preload() {
-    ice_flag_image = loadImage("flag.png");
 }
 
 // ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
@@ -169,10 +192,12 @@ function spinPinwheels(pinwheelObjects) {
 }
 
 function MOVE_CAMERA(changeX, changeY, changeZ, durationInSeconds) {
-    if (useIceCameraPanning) {
-        moveCameraPan(changeX, changeY, changeZ, durationInSeconds, iceFramesPerSecond);
-    } else {
-        moveCamera(changeX, changeY, changeZ);
+    if (!iceCameraDebugging) {
+        if (useIceCameraPanning) {
+            moveCameraPan(changeX, changeY, changeZ, durationInSeconds, iceFramesPerSecond);
+        } else {
+            moveCamera(changeX, changeY, changeZ);
+        }
     }
 }
 
@@ -195,6 +220,12 @@ function moveCamera(changeX, changeY, changeZ) {
     iceCamera.move(changeX, changeY, changeZ);
 }
 
+document.documentElement.addEventListener(
+    "mousedown", function() {
+        iceOnClicked = true;
+    }
+);
+
 // END OF ICE FUNCTIONS
 
 // ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
@@ -211,9 +242,13 @@ function setup() {
     engine = Engine.create();
     world = engine.world;
     iceCamera = createCamera();
+    
     // technically need to get current instance of camera from previous environment
+    
+    // starting camera spot for ice environment
     moveCamera(ice_x + 400, ice_y + 500, 0);
-    // moveCamera(ice_x + 2000, ice_y + 3400, 1500);
+    
+    // moveCamera(ice_x + 2000, ice_y + 8000, 5000);
     iceCameraX = iceCamera.centerX;
     iceCameraY = iceCamera.centerY;
     iceCameraZ = iceCamera.centerZ;
@@ -254,7 +289,7 @@ function setup() {
         { x : -660 , y : 2000 },
         { x : -660 , y : 0 }
     ];
-    ice_curve = Bodies.fromVertices(ice_x + 860, ice_y + 1635, ice_curve_vertices, { isStatic: true, friction: 0 }, [flagInternal=false], [removeCollinear=0.01], [minimumArea=10], [removeDuplicatePoints=0.01]);
+    ice_curve = Bodies.fromVertices(ice_x + 860, ice_y + 1635, ice_curve_vertices, { isStatic: true, friction: 0, restitution: 1 }, [flagInternal=false], [removeCollinear=0.01], [minimumArea=10], [removeDuplicatePoints=0.01]);
     second_ice_flag = Bodies.rectangle(ice_x + 1465, ice_y + 1985, 60, 60, { isStatic: true });
     ice_plinko_pegs = createPegs(ice_x + 1600, ice_y + 2050, 15, 13, 100, 30);
     ice_landing_rectangle = Bodies.rectangle(ice_x + 4300, ice_y + 2080, 1000, 120, { isStatic: true });
@@ -263,7 +298,7 @@ function setup() {
     ice_plinko_ball_left_wall = Bodies.rectangle(ice_x + 1900, ice_y + 200, 20, 1000, { isStatic: true });
     ice_plinko_ball_right_wall = Bodies.rectangle(ice_x + 3240, ice_y + 200, 20, 1000, { isStatic: true });
     ice_plinko_ball_door = Bodies.rectangle(ice_x + 2570, ice_y + 690, 1360, 20, { isStatic: true });
-    ice_plinko_balls = createPlinkoBalls(100, ice_x + 2570, ice_y + 200);
+    ice_plinko_balls = createPlinkoBalls(10, ice_x + 2570, ice_y + 200);
     ice_plinko_left_boundary = Bodies.rectangle(ice_x + 1350, ice_y + 4000, 20, 3800, { isStatic: true });
     ice_plinko_right_boundary = Bodies.rectangle(ice_x + 3875, ice_y + 4000, 20, 3800, { isStatic: true });
     Body.rotate(ice_plinko_left_boundary, 3);
@@ -280,11 +315,29 @@ function setup() {
     ice_spin_left_horizontal = Bodies.rectangle(ice_x + 2150, ice_y + 4950, 800, 40, { isStatic: true, inertia: Infinity, rotationSpeed: 0.02, restitution: 0.8 });
     ice_spin_right_vertical = Bodies.rectangle(ice_x + 3000, ice_y + 5400, 40, 800, { isStatic: true, inertia: Infinity, rotationSpeed: 0.02, restitution: 0.8 });
     ice_spin_right_horizontal = Bodies.rectangle(ice_x + 3000, ice_y + 5400, 800, 40, { isStatic: true, inertia: Infinity, rotationSpeed: 0.02, restitution: 0.8 });
+    ice_basket_left_wall = Bodies.rectangle(ice_x + 1000, ice_y + 9000, 40, 600, { isStatic: true });
+    ice_basket_right_wall = Bodies.rectangle(ice_x + 1840, ice_y + 9000, 40, 600, { isStatic: true });
+    ice_basket_bottom = Bodies.rectangle(ice_x + 1420, ice_y + 9280, 800, 40, { isStatic: true });
+    ice_lever = Bodies.rectangle(ice_x + 3920, ice_y + 9280, 4600, 40, { isStatic: true });
+
+    // attractorBody = Matter.Bodies.circle(ice_x + 2870, ice_y + 7900, 40, {
+    //     plugin: {
+    //         attractors: [
+    //             function(attractorBody, otherBody) {
+    //                 return {
+    //                     x: (attractorBody.position.x - otherBody.position.x) * 1e-6,
+    //                     y: (attractorBody.position.y - otherBody.position.y) * 1e-6,
+    //                 };
+    //             }
+    //         ]
+    //     }
+    // });
 
     // adding all bodies into one array and adding them into the world
     var iceBodies = [ice_starting_rectangle, second_ice_starting_rectangle, ice_main_body, ice_starting_raised_rectangle, ice_starting_flag, ice_curve, second_ice_flag, ice_plinko_pegs, ice_landing_rectangle, 
         third_ice_flag, ice_plinko_ball_cover, ice_plinko_ball_left_wall, ice_plinko_ball_right_wall, ice_plinko_ball_door, ice_plinko_left_boundary, ice_plinko_right_boundary, ice_slant_one, ice_slant_two,
-        ice_slant_three, ice_slant_four, ice_spin_left_vertical, ice_spin_left_horizontal, ice_spin_right_vertical, ice_spin_right_horizontal];
+        ice_slant_three, ice_slant_four, ice_spin_left_vertical, ice_spin_left_horizontal, ice_spin_right_vertical, ice_spin_right_horizontal, ice_basket_left_wall, ice_basket_right_wall, ice_basket_bottom, 
+        ice_lever];
     for (var i = 0;i < ice_starting_dominoes.length;i++) {
         iceBodies.push(ice_starting_dominoes[i]);
     }
@@ -365,7 +418,7 @@ ice_conditions.push(
         third_ice_flag_checkpoint = true;
         World.remove(world, ice_plinko_ball_door);
         // MOVE_CAMERA(0, 1700, 0, iceCameraPanningSpeed);
-        MOVE_CAMERA(0, 7500, 0, iceCameraPanningSpeed * 10);
+        MOVE_CAMERA(0, 8000, 0, iceCameraPanningSpeed * 10);
       }
     )
 );
@@ -389,6 +442,30 @@ function draw() {
     // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
 
     // BEGINNING OF ICE BIOME DRAW CODE
+    
+    if (iceOnClicked && !iceSoundPlaying) {
+        ice_audio = document.getElementById("jjkAudio");
+        ice_audio.volume = iceVolume;
+        let playPromise = ice_audio.play();
+        if (playPromise !== undefined) {
+            playPromise.then(_ => {
+                iceSoundPlaying = true;
+                ice_audio.onended = function () {
+                    iceSoundPlaying = false;
+                }
+            }).catch(error => {
+                console.log(error)
+            });
+        }
+    }
+
+    if (iceSoundPlaying && ice_first_time_audio) {
+        ice_first_time_audio = false;
+        ice_fft = new p5.FFT();
+        ice_pieces = 4;
+        ice_radius = screen.availHeight / 4;
+        ice_audio_setup_completed = true;
+    }
 
     // code to pan camera with desired vectors
     if (iceCameraMoving) {
@@ -427,8 +504,63 @@ function draw() {
         }
     }
 
+
+
+    if (ice_audio_setup_completed) {
+        // find an audio visual code
+        // or... make your own
+
+        background(0);
+
+        // var centerX = iceCamera.centerX;
+        // var centerY = iceCamera.centerY;
+
+        // var numLayers = 100;
+        // var spacing = 10;
+        // var maxHorizRadius = numLayers * spacing;
+
+        // var colorPalette = ["#0f0639", "#ff006a", "#ff4f00", "#00f9d9"];
+
+        // var angle = Math.PI / 18;
+        // var numLayersToRotate = 1;
+
+        // for (var i = 1;i < numLayers;i++) {
+        //     stroke(colorPalette[i % 4]);
+        //     strokeWeight(1);
+        //     var Radius = 10;
+        //     if (i <= numLayersToRotate) {
+        //         line((cos(angle) * Radius) + centerX - maxHorizRadius, (sin(angle) * Radius) + centerY - maxHorizRadius, (cos(angle) * Radius) + centerX + maxHorizRadius, (sin(angle) * Radius) + centerY - maxHorizRadius);
+        //         line((cos(angle) * Radius) + centerX + maxHorizRadius, (sin(angle) * Radius) + centerY - maxHorizRadius, (cos(angle) * Radius) + centerX + maxHorizRadius, (sin(angle) * Radius) + centerY + maxHorizRadius);
+        //         line((cos(angle) * Radius) + centerX + maxHorizRadius, (sin(angle) * Radius) + centerY + maxHorizRadius, (cos(angle) * Radius) + centerX - maxHorizRadius, (sin(angle) * Radius) + centerY + maxHorizRadius);
+        //         line((cos(angle) * Radius) + centerX - maxHorizRadius, (sin(angle) * Radius) + centerY + maxHorizRadius, (cos(angle) * Radius) + centerX - maxHorizRadius, (sin(angle) * Radius) + centerY - maxHorizRadius);
+        //     } else {
+        //         line(centerX - maxHorizRadius, centerY - maxHorizRadius, centerX + maxHorizRadius, centerY - maxHorizRadius);
+        //         line(centerX + maxHorizRadius, centerY - maxHorizRadius, centerX + maxHorizRadius, centerY + maxHorizRadius);
+        //         line(centerX + maxHorizRadius, centerY + maxHorizRadius, centerX - maxHorizRadius, centerY + maxHorizRadius);
+        //         line(centerX - maxHorizRadius, centerY + maxHorizRadius, centerX - maxHorizRadius, centerY - maxHorizRadius);
+        //     }
+        //     maxHorizRadius -= spacing; 
+        // }
+
+        // if (numLayersToRotate <= numLayers && increasingNumLayers) {
+        //     numLayersToRotate++;
+        //     if (numLayersToRotate == numLayers) {
+        //         increasingNumLayers = false;
+        //     }
+        // } else {
+        //     numLayersToRotate--;
+        //     if (numLayersToRotate == 1) {
+        //         increasingNumLayers = true;
+        //     }
+        // }
+ 
+    } else {
+        background(0);
+    }
+
+
     // initial drawing
-    background(0);
+    // background(0);
     fill(255);
     stroke(255);
 
@@ -455,6 +587,10 @@ function draw() {
     drawBody(ice_spin_left_horizontal);
     drawBody(ice_spin_right_vertical);
     drawBody(ice_spin_right_horizontal);
+    drawBody(ice_basket_left_wall);
+    drawBody(ice_basket_right_wall);
+    drawBody(ice_basket_bottom);
+    drawBody(ice_lever);
 
     // for specifically drawing any rotating bodies
     // var vertice_drawing_group = [ice_spin_left_vertical, ice_spin_left_horizontal, ice_spin_right_vertical, ice_spin_right_horizontal];
