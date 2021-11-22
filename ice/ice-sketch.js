@@ -14,6 +14,7 @@ const drawBody = Helpers.drawBody;
 const drawBodies = Helpers.drawBodies;
 const drawMouse = Helpers.drawMouse;
 const drawConstraint = Helpers.drawConstraint;
+const drawComposite = Helpers.drawComposite;
 
 
 // ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
@@ -54,12 +55,19 @@ let iceCameraDebugging = false;
 let iceSoundPlaying = false;
 let iceVolume = 0.1;
 let iceOnClicked = false;
-
-var ice_pieces, ice_radius, ice_fft, ice_mapMouseX, ice_mapMouseY, ice_audio;
-var ice_colorPalette = ["#0f0639", "#ff006a", "#ff4f00", "#00f9d9"];
-
+let ice_audio;
 let ice_first_time_audio = true;
 let ice_audio_setup_completed = false;
+
+// font settings
+let ice_font;
+
+let ice_mic;
+let ice_fft;
+let ice_skyLayer;
+let ice_spectrumX = 0;
+let ice_spectrumY = 0;
+let ice_spectrumSpeed = 2;
 
 // ice bodies and booleans/arrays
 let ice_starting_rectangle;
@@ -69,9 +77,13 @@ let ice_starting_dominoes = [];
 let ice_starting_flag;
 let second_ice_flag;
 let third_ice_flag;
+let fourth_ice_flag;
+let fifth_ice_flag;
 let ice_starting_flag_checkpoint = false;
 let second_ice_flag_checkpoint = false;
 let third_ice_flag_checkpoint = false;
+let fourth_ice_flag_checkpoint = false;
+let fifth_ice_flag_checkpoint = false;
 let ice_curve;
 let ice_main_body;
 let ice_plinko_pegs = [];
@@ -95,12 +107,19 @@ let ice_basket_left_wall;
 let ice_basket_right_wall;
 let ice_basket_bottom;
 let ice_lever;
+let ice_lever_constraint;
 let ice_chain;
-let ice_chain_links;
-let ice_chain_constraint;
+let ice_chain_top_constraint;
+let ice_chain_bottom_constraint;
+let ice_lever_weight;
+let ice_basket_left_constraint;
+let ice_basket_right_constraint;
+let ice_basket_constraint;
 
-// ice images
+// ice images and gifs
 let ice_flag_image;
+let ice_bg_gif;
+let ice_bg_img;
 
 // ice conditions array
 var ice_conditions = [];
@@ -137,6 +156,12 @@ class Conditions {
 // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
 
 // BEGINNING OF ICE FUNCTIONS
+
+function preload() {
+    // ice_bg_gif = createImg("./zombie.gif");
+    ice_bg_img = loadImage("wano.jpeg");
+    ice_font = loadFont("outfit.ttf");
+}
 
 function randomNumber(lowerBound, upperBound) {
     return Math.floor((Math.random() * upperBound) + lowerBound);
@@ -248,7 +273,7 @@ function setup() {
     // starting camera spot for ice environment
     moveCamera(ice_x + 400, ice_y + 500, 0);
     
-    // moveCamera(ice_x + 2000, ice_y + 8000, 5000);
+    // moveCamera(ice_x + 2000, ice_y + 11000, 5000);
     iceCameraX = iceCamera.centerX;
     iceCameraY = iceCamera.centerY;
     iceCameraZ = iceCamera.centerZ;
@@ -298,15 +323,15 @@ function setup() {
     ice_plinko_ball_left_wall = Bodies.rectangle(ice_x + 1900, ice_y + 200, 20, 1000, { isStatic: true });
     ice_plinko_ball_right_wall = Bodies.rectangle(ice_x + 3240, ice_y + 200, 20, 1000, { isStatic: true });
     ice_plinko_ball_door = Bodies.rectangle(ice_x + 2570, ice_y + 690, 1360, 20, { isStatic: true });
-    ice_plinko_balls = createPlinkoBalls(10, ice_x + 2570, ice_y + 200);
+    ice_plinko_balls = createPlinkoBalls(175, ice_x + 2570, ice_y + 200);
     ice_plinko_left_boundary = Bodies.rectangle(ice_x + 1350, ice_y + 4000, 20, 3800, { isStatic: true });
     ice_plinko_right_boundary = Bodies.rectangle(ice_x + 3875, ice_y + 4000, 20, 3800, { isStatic: true });
     Body.rotate(ice_plinko_left_boundary, 3);
     Body.rotate(ice_plinko_right_boundary, -3);
-    ice_slant_one = Bodies.rectangle(ice_x + 2270, ice_y + 6200, 2500, 40, { isStatic: true, friction: 0 });
-    ice_slant_two = Bodies.rectangle(ice_x + 2870, ice_y + 6800, 2500, 40, { isStatic: true, friction: 0 });
-    ice_slant_three = Bodies.rectangle(ice_x + 2270, ice_y + 7400, 2500, 40, { isStatic: true, friction: 0 });
-    ice_slant_four = Bodies.rectangle(ice_x + 2870, ice_y + 8000, 2500, 40, { isStatic: true, friction: 0 });
+    ice_slant_one = Bodies.rectangle(ice_x + 1870, ice_y + 6200, 2900, 40, { isStatic: true, friction: 0 });
+    ice_slant_two = Bodies.rectangle(ice_x + 3270, ice_y + 6800, 2900, 40, { isStatic: true, friction: 0 });
+    ice_slant_three = Bodies.rectangle(ice_x + 1870, ice_y + 7400, 2900, 40, { isStatic: true, friction: 0 });
+    ice_slant_four = Bodies.rectangle(ice_x + 3270, ice_y + 8000, 2900, 40, { isStatic: true, friction: 0 });
     Body.rotate(ice_slant_one, -3);
     Body.rotate(ice_slant_two, 3);
     Body.rotate(ice_slant_three, -3);
@@ -318,26 +343,50 @@ function setup() {
     ice_basket_left_wall = Bodies.rectangle(ice_x + 1000, ice_y + 9000, 40, 600, { isStatic: true });
     ice_basket_right_wall = Bodies.rectangle(ice_x + 1840, ice_y + 9000, 40, 600, { isStatic: true });
     ice_basket_bottom = Bodies.rectangle(ice_x + 1420, ice_y + 9280, 800, 40, { isStatic: true });
-    ice_lever = Bodies.rectangle(ice_x + 3920, ice_y + 9280, 4600, 40, { isStatic: true });
-
-    // attractorBody = Matter.Bodies.circle(ice_x + 2870, ice_y + 7900, 40, {
-    //     plugin: {
-    //         attractors: [
-    //             function(attractorBody, otherBody) {
-    //                 return {
-    //                     x: (attractorBody.position.x - otherBody.position.x) * 1e-6,
-    //                     y: (attractorBody.position.y - otherBody.position.y) * 1e-6,
-    //                 };
-    //             }
-    //         ]
-    //     }
-    // });
+    ice_lever = Bodies.rectangle(ice_x + 3280, ice_y + 9320, 4600, 40);
+    ice_chain = Bodies.rectangle(ice_x + 5920, ice_y + 9780, 120, 1400);
+    ice_lever_weight = Bodies.circle(ice_x + 5920, ice_y + 10500, 300);
+    ice_chain_top_constraint = Constraint.create({
+        bodyA: ice_lever,
+        bodyB: ice_chain,
+        pointA: {
+            x: 2000,
+            y: 0
+        },
+        pointB: {
+            x: 0,
+            y: -600
+        },
+        length: 400,
+        stiffness: 0.4
+    });
+    ice_chain_bottom_constraint = Constraint.create({
+        bodyA: ice_chain,
+        bodyB: ice_lever_weight,
+        pointA: {
+            x: 0,
+            y: 600
+        },
+        length: 600,
+        stiffness: 0.4
+    });
+    ice_lever_constraint = Constraint.create({
+        pointA: {
+            x: ice_lever.position.x,
+            y: ice_lever.position.y
+        },
+        bodyB: ice_lever,
+        length: 0,
+        stiffness: 0.9
+    });
+    fourth_ice_flag = Bodies.rectangle(ice_x + 1000, ice_y + 8900, 40, 40, { isStatic: true });
+    fifth_ice_flag = Bodies.rectangle(ice_x + 4820, ice_y + 8400, 400, 400, { isStatic: true });
 
     // adding all bodies into one array and adding them into the world
     var iceBodies = [ice_starting_rectangle, second_ice_starting_rectangle, ice_main_body, ice_starting_raised_rectangle, ice_starting_flag, ice_curve, second_ice_flag, ice_plinko_pegs, ice_landing_rectangle, 
         third_ice_flag, ice_plinko_ball_cover, ice_plinko_ball_left_wall, ice_plinko_ball_right_wall, ice_plinko_ball_door, ice_plinko_left_boundary, ice_plinko_right_boundary, ice_slant_one, ice_slant_two,
         ice_slant_three, ice_slant_four, ice_spin_left_vertical, ice_spin_left_horizontal, ice_spin_right_vertical, ice_spin_right_horizontal, ice_basket_left_wall, ice_basket_right_wall, ice_basket_bottom, 
-        ice_lever];
+        ice_lever, ice_chain, ice_lever_weight, ice_chain_top_constraint, ice_chain_bottom_constraint, ice_lever_constraint, fourth_ice_flag, fifth_ice_flag];
     for (var i = 0;i < ice_starting_dominoes.length;i++) {
         iceBodies.push(ice_starting_dominoes[i]);
     }
@@ -417,8 +466,36 @@ ice_conditions.push(
       () => {
         third_ice_flag_checkpoint = true;
         World.remove(world, ice_plinko_ball_door);
-        // MOVE_CAMERA(0, 1700, 0, iceCameraPanningSpeed);
-        MOVE_CAMERA(0, 8000, 0, iceCameraPanningSpeed * 10);
+        MOVE_CAMERA(0, 15000, 0, iceCameraPanningSpeed * 15);
+      }
+    )
+);
+
+ice_conditions.push(
+    new Conditions(
+      () => {
+        var somethingCollided = false;
+        for (var i = 0;i < ice_plinko_balls.length;i++) {
+            if (Matter.SAT.collides(ice_plinko_balls[i].body, fourth_ice_flag).collided) {
+                somethingCollided = true;
+            }
+        }
+        return somethingCollided;
+      },
+      () => {
+        fourth_ice_flag_checkpoint = true;
+        World.remove(world, ice_basket_bottom);
+      }
+    )
+);
+
+ice_conditions.push(
+    new Conditions(
+      () => {
+        return Matter.SAT.collides(ice_lever, fifth_ice_flag).collided;
+      },
+      () => {
+        fifth_ice_flag_checkpoint = true;
       }
     )
 );
@@ -442,6 +519,8 @@ function draw() {
     // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
 
     // BEGINNING OF ICE BIOME DRAW CODE
+
+    // clear()
     
     if (iceOnClicked && !iceSoundPlaying) {
         ice_audio = document.getElementById("jjkAudio");
@@ -461,9 +540,10 @@ function draw() {
 
     if (iceSoundPlaying && ice_first_time_audio) {
         ice_first_time_audio = false;
+        
         ice_fft = new p5.FFT();
-        ice_pieces = 4;
-        ice_radius = screen.availHeight / 4;
+        ice_fft.setInput(ice_audio);
+
         ice_audio_setup_completed = true;
     }
 
@@ -511,6 +591,12 @@ function draw() {
         // or... make your own
 
         background(0);
+
+        // push();
+        // scale(100, 100, 100)
+        // imageMode(CENTER);
+        // image(ice_bg_img, iceCamera.centerX, iceCamera.centerY, screen.availWidth, screen.availHeight);
+        // pop();
 
         // var centerX = iceCamera.centerX;
         // var centerY = iceCamera.centerY;
@@ -589,8 +675,13 @@ function draw() {
     drawBody(ice_spin_right_horizontal);
     drawBody(ice_basket_left_wall);
     drawBody(ice_basket_right_wall);
-    drawBody(ice_basket_bottom);
     drawBody(ice_lever);
+    drawBody(ice_chain);
+    drawBody(ice_lever_weight);
+    drawConstraint(ice_chain_top_constraint);
+    drawConstraint(ice_chain_bottom_constraint);
+    drawConstraint(ice_lever_constraint);
+
 
     // for specifically drawing any rotating bodies
     // var vertice_drawing_group = [ice_spin_left_vertical, ice_spin_left_horizontal, ice_spin_right_vertical, ice_spin_right_horizontal];
@@ -632,6 +723,53 @@ function draw() {
         stroke("rgb(255, 0, 0)");
     }
     drawBody(third_ice_flag);
+    if (fourth_ice_flag_checkpoint) {
+        fill("rgb(0, 255, 0)");
+        stroke("rgb(0, 255, 0)");
+    } else {
+        fill(255);
+        stroke(255);
+        drawBody(ice_basket_bottom);
+        fill("rgb(255, 0, 0)");
+        stroke("rgb(255, 0, 0)");
+    }
+    drawBody(fourth_ice_flag);
+    textSize(170);
+    textFont(ice_font);
+    if (fifth_ice_flag_checkpoint) {
+        fill("rgb(0, 255, 0)");
+        stroke("rgb(0, 255, 0)");
+        drawBody(fifth_ice_flag);
+        fill(255);
+        text('ON', ice_x + 4690, ice_y + 8460);
+        
+        fill("rgb(0, 255, 0)");
+        stroke("rgb(0, 255, 0)");
+        push();
+        strokeWeight(4);
+        line(ice_x + 4620, ice_y + 8400, ice_x + 3120, ice_y + 8400);
+        line(ice_x + 3120, ice_y + 8400, ice_x + 3120, ice_y + 10400);
+        line(ice_x + 3120, ice_y + 10400, ice_x + 1020, ice_y + 10400);
+        line(ice_x + 1020, ice_y + 10400, ice_x - 300, ice_y + 11500);
+        pop();
+        
+    } else {
+        fill("rgb(255, 0, 0)");
+        stroke("rgb(255, 0, 0)");
+        drawBody(fifth_ice_flag);
+        fill(0);
+        text('OFF', ice_x + 4650, ice_y + 8460);
+
+        fill("rgb(255, 0, 0)");
+        stroke("rgb(255, 0, 0)");
+        push();
+        strokeWeight(4);
+        line(ice_x + 4620, ice_y + 8400, ice_x + 3120, ice_y + 8400);
+        line(ice_x + 3120, ice_y + 8400, ice_x + 3120, ice_y + 10400);
+        line(ice_x + 3120, ice_y + 10400, ice_x + 1020, ice_y + 10400);
+        line(ice_x + 1020, ice_y + 10400, ice_x - 300, ice_y + 11500);
+        pop();
+    }
 
 
     // drawing the plinko pegs and balls

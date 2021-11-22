@@ -2,7 +2,8 @@ class IceParticlePlinko {
     constructor(x, y, r, rgb) {
         var options = {
             restitution: 0.5,
-            friction: 0
+            friction: 0,
+            density: 0.01
         }
         this.rgb = rgb;
         this.body = Bodies.circle(x, y, r, options);
