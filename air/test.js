@@ -73,6 +73,7 @@ let cloud1;
 let airCloudSprings = [];
 let airPastCloudSprings = false;
 let airLightningImg;
+let airLightningTime;
 
 // Windmills
 let windmills = [];
@@ -104,6 +105,16 @@ let windmillVertices = [
     { x: 5, y: 200 },
 ];
 let windmillBlades;
+
+// Tower
+let airRadioTower;
+let airRadioTowerImg;
+
+// Plinko
+let airPlinkoPegs = [];
+let airPlinkoBalls = [];
+let airHelicopter;
+let airHelicopterImg;
 
 /*------------------------------ Begin Camera Functions -----------------------------------*/
 
@@ -165,7 +176,7 @@ function createSpring(x, y, w, h, power, lastSpring) {
                 let on = pairs[j];
                 if (on.bodyB.id === trampoline.id) {
                     Body.setVelocity(on.bodyA, Vector.add(Vector.create(10 * power, -75 * power), Vector.clone(on.bodyA.velocity)));
-                    Body.setAngularVelocity(on.bodyA,  -Math.PI / 30);
+                    Body.setAngularVelocity(on.bodyA, -Math.PI / 30);
                     airPastCloudSprings = lastSpring;
                 }
             }
@@ -243,6 +254,26 @@ function drawSpriteWithOffset(body, img, offsetX, offsetY, w, h) {
     pop();
 }
 
+function createPegs(x, y, rows, columns, spacing, radius) {
+    var pegs = [];
+    var startX = x;
+    var tempX = startX + 0.5 * (spacing + 2 * radius);
+    var tempY = y;
+    for (var i = 0;i < rows;i++) {
+        for (var j = 0;j < columns;j++) {
+            pegs.push(new IceParticlePeg(tempX, tempY, radius));
+            tempX += spacing + 2 * radius;
+        }
+        tempY += spacing + 2 * radius;
+        if (i % 2 == 0) {
+            tempX = startX;
+        } else {
+            tempX = startX + 0.5 * (spacing + 2 * radius);
+        }
+    }
+    return pegs;
+}
+
 /*------------------------------ End Component Functions ------------------------------------*/
 /*--------------------------------- Begin Air Conditionals --------------------------------*/
 
@@ -303,9 +334,7 @@ airConditions.push(new Conditional(
         },
         () => {
             airPlaneImg = airPlainPlaneImg;
-            console.log(airPlaneBody.position.x);
             Body.scale(airPlaneBody, 0.75, 0.5);
-            console.log(airPlaneBody.position.x);
         },
         () => {
             airConditions.shift();
@@ -355,6 +384,8 @@ airConditions.push(new Conditional(
             return airPastCloudSprings && !airCameraMoving && angle < Math.PI / 2 && angle > Math.PI / 4;
         },
         () => {
+            // engine.timing.timeScale = 0.5;
+            // frameRate(15);
             airCameraFollowMainBody = true;
             airCamZoom = -500;
             airPlaneImg = airThrustPlaneImg;
@@ -372,10 +403,29 @@ airConditions.push(new Conditional(
             return true;
         },
         () => {
-            airCameraFollowMainBody = false;
+            // airCameraFollowMainBody = false;
             // moveCamera(0, 0, 1000);
             // Place breakpoint here!
+            airTime-=2;
         },
+        () => {
+            if(airPlaneBody.velocity.y >= 0 && airTime < 0) {
+                airConditions.shift();
+            }
+            airTime = 0;
+        }
+    )
+);
+
+airConditions.push(new Conditional(
+        () => {
+            return true;
+        },
+        () => {
+            Body.setAngularVelocity(airPlaneBody, 0);
+            Body.setAngle(airPlaneBody, 0);
+            Body.setVelocity(airPlaneBody, {x: 10, y: 0});
+        }, 
         () => {
 
         }
@@ -447,15 +497,16 @@ function setup() {
     // let windmill3 = createWindmill(17100, 690, 270, 0);
     // windmills = [windmill1, windmill2, windmill3];
 
-    // setup mouse
-    const mouse = Mouse.create(canvas.elt);
-    const mouseParams = {
-    mouse: mouse,
-    constraint: { stiffness: 0.05, angularStiffness: 0 }
-    }
-    mouseConstraint = MouseConstraint.create(engine, mouseParams);
-    mouseConstraint.mouse.pixelRatio = pixelDensity();
-    World.add(engine.world, mouseConstraint);
+    airRadioTowerImg = loadImage("resources/RadioTower.png");
+    airRadioTower = Bodies.rectangle(1980, 1300, 300, 600, {
+        isStatic: true,
+    });
+
+    airPlinkoPegs = createPegs(21000, 0, 15, 13, 150, 30); // x, y, rows, columns, spacing, radius
+    airHelicopterImg = loadImage("resources/LeftHelicopter.png");
+    airHelicopter = Bodies.rectangle(22500, -300, 300, 100, {
+        isStatic: true,
+    });
 
     //run the engine
     Engine.run(engine);
@@ -522,8 +573,7 @@ function draw() {
     }
     /*--------------- End Clouds ---------------*/
 
-    /*-------------- Draw Windmill -------------*/
-    /*-------------- Draw Windmill -------------*/
+    /*-------------- Begin Windmill -------------*/
     for(var i = 0; i < windmills.length; i++) {
         let windmill = windmills[i];
         fill(133, 98, 1);
@@ -531,11 +581,14 @@ function draw() {
         fill(255, 255, 255);
         drawBody(windmill[1]);
     }
+    /*----------------- End Windmill -------------*/
 
     /*-------------- Draw Springs ----------------*/
-    if(airPastCloudSprings) {
+    if(airPastCloudSprings && airLightningTime < 5) {
         image(airLightningImg, 17950, 1000);
     }
+    airLightningTime++;
+
     for (let i = 0; i < airCloudSprings.length; i++) {
         const spring = airCloudSprings[i];
         if(i != airCloudSprings.length - 1) {
@@ -544,4 +597,14 @@ function draw() {
             drawSpriteWithOffset(spring, airThunderCloudImg, 0, 0, 300, 150);
         }
     }
+    drawBody(airRadioTower);
+    drawSpriteWithOffset(airRadioTower, airRadioTowerImg, 0, 0, 300, 600);
+    /*-------------- End Springs ----------------*/
+
+    /*-------------- Draw Plinko ----------------*/
+    for (var i = 0;i < airPlinkoPegs.length;i++) {
+        airPlinkoPegs[i].show();
+    }
+    drawSpriteWithOffset(airHelicopter, airHelicopterImg, 0, 0, 300, 100);
+    /*-------------- End Plinko ----------------*/
 }
