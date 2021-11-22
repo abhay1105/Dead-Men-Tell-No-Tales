@@ -7,7 +7,6 @@ const Mouse = Matter.Mouse;
 const MouseConstraint = Matter.MouseConstraint;
 const Constraint = Matter.Constraint;
 const Composites = Matter.Composites;
-const Composite = Matter.Composite;
 const Events = Matter.Events;
 const Vector = Matter.Vector;
 
@@ -118,6 +117,15 @@ let airPlinkoPegs = [];
 let airPlinkoBalls = [];
 let airHelicopter;
 let airHelicopterImg;
+let airHelicopterBeacon;
+let airBucketLeftWall;
+let airBucketRightWall;
+let airBucketBottom;
+let airBucketBottomConstraint;
+
+// Ragdoll
+let ragdollCharacter;
+var ragdolls = Composite.create();
 
 /*------------------------------ Begin Camera Functions -----------------------------------*/
 
@@ -154,7 +162,7 @@ function createSpring(x, y, w, h, power, lastSpring) {
         bodyA: trampoline,
         pointA: Vector.create(-(w * 0.5), 0),
         pointB: Vector.add(Vector.create(-(w * 0.5), -(w * 0.5)), Matter.Vector.create(trampoline.position.x, trampoline.position.y)),
-        stiffness: 0.001,
+        stiffness: 0.0001,
         render: {
             visible: true,
         }
@@ -164,7 +172,7 @@ function createSpring(x, y, w, h, power, lastSpring) {
         bodyA: trampoline,
         pointA: Vector.create((w * 0.5), 0),
         pointB: Vector.add(Vector.create((w * 0.5), -(w * 0.5)), Matter.Vector.create(trampoline.position.x, trampoline.position.y)),
-        stiffness: 0.001,
+        stiffness: 0.0001,
         render: {
             visible: true,
         }
@@ -349,7 +357,7 @@ airConditions.push(new Conditional(
         () => {
             airCamZoom -= 1;
             airCamYOffset += 1;
-            return airPlaneBody.position.x >= 15600;
+            return airPlaneBody.position.x >= 15500 && airPlaneBody.velocity.y == 0;
         },
         () => {
             Body.setVelocity(airPlaneBody, Vector.create(10, 0));
@@ -500,6 +508,7 @@ function setup() {
     // let windmill3 = createWindmill(17100, 690, 270, 0);
     // windmills = [windmill1, windmill2, windmill3];
 
+    // Tower
     airRadioTowerImg = loadImage("resources/RadioTower.png");
     airRadioTower = Bodies.rectangle(18050, 1575, 300, 600, {
         isStatic: true
@@ -508,12 +517,45 @@ function setup() {
         isStatic: true
     });
 
-    airPlinkoPegs = createPegs(21000, 0, 6, 13, 150, 30); // x, y, rows, columns, spacing, radius
+    // Plinko with Helicopter and Bucket
+    airPlinkoPegs = createPegs(21000, -100, 6, 13, 150, 30); // x, y, rows, columns, spacing, radius
     airHelicopterImg = loadImage("resources/LeftHelicopter.png");
-    airHelicopter = Bodies.rectangle(22500, -300, 300, 100, {
+    airHelicopter = Bodies.rectangle(22500, -600, 300, 100, {
         isStatic: true,
     });
     World.add(engine.world, airHelicopter);
+
+    airBucketLeftWall = Bodies.rectangle(22000, -300, 10, 100, {
+        isStatic: true,
+    });
+    airBucketRightWall = Bodies.rectangle(23000, -300, 10, 100, {
+        isStatic: true,
+    });
+    airBucketBottom = Bodies.rectangle(22500, -240, 1000, 10, {
+        isStatic: true,
+    });
+    airHelicopterBeacon = Bodies.circle(22500, -600, 10, {
+        isStatic: true,
+    })
+
+    for (let i = 0; i < 200; i++) {
+        airPlinkoBalls.push(
+            Bodies.circle(
+                22000 + i * (Math.ceil(Math.random() * 100)),    // x
+                -300,                                            // y
+                Math.ceil(Math.random() * 50) + 10               // r
+            )
+        );
+    }
+
+    World.add(engine.world, [airBucketLeftWall, airBucketRightWall, airBucketBottom]);
+    World.add(engine.world, airPlinkoBalls);
+
+    // Add ragdoll
+    ragdollCharacter = createRagdoll(absoluteScreenWidth / 2 + airPlaneBody.position.x, 0, 1.3); // x, y, scale
+    Composite.add(ragdolls, ragdollCharacter);
+
+
 
     //run the engine
     Engine.run(engine);
@@ -546,12 +588,14 @@ function draw() {
     airTime++;
     
     /*------------ Begin Runway ---------------*/
-    noStroke();
-    fill(115, 115, 115, 255);
-    rect(0, 350, 10000, 800);
-    fill(252, 186, 3);
-    for(let i = 0; i < 14; i++) { 
-        rect(100 + i * 350, 375, 200, 50);
+    if(airCamera.centerX < 12000) {
+        noStroke();
+        fill(115, 115, 115, 255);
+        rect(0, 350, 10000, 800);
+        fill(252, 186, 3);
+        for(let i = 0; i < 14; i++) { 
+            rect(100 + i * 350, 375, 200, 50);
+        }
     }
     /*-------------- End Runway ----------------*/
 
@@ -573,9 +617,11 @@ function draw() {
     /*------------ End Draw Plane --------------*/
 
     /*-------------- Begin Clouds --------------*/
-    for(let i = 0; i < airNumRowClouds; i++) {
-        for(let j = 0; j < airNumColClouds; j++) {
-            image(airCloudImg, airCloudPositionMatrix[i][j][0], airCloudPositionMatrix[i][j][1]);
+    if(airCameraX < 16000) {
+        for(let i = 0; i < airNumRowClouds; i++) {
+            for(let j = 0; j < airNumColClouds; j++) {
+                image(airCloudImg, airCloudPositionMatrix[i][j][0], airCloudPositionMatrix[i][j][1]);
+            }
         }
     }
     /*--------------- End Clouds ---------------*/
@@ -616,7 +662,7 @@ function draw() {
     } 
     drawBody(airRadioBeacon);
 
-    noFill()
+    noFill();
     if(beaconTriggered) {
         airSignalDiameter += 23;
         circle(18050, 1325, airSignalDiameter - 100 > 0 ? airSignalDiameter - 100 : 0);
@@ -625,9 +671,32 @@ function draw() {
     /*-------------- End Springs ----------------*/
 
     /*-------------- Draw Plinko ----------------*/
-    for (var i = 0;i < airPlinkoPegs.length;i++) {
-        airPlinkoPegs[i].show();
+    if(airCamera.centerX > 16000) {
+        for (var i = 0;i < airPlinkoPegs.length;i++) {
+            airPlinkoPegs[i].show();
+        }
+        drawSpriteWithOffset(airHelicopter, airHelicopterImg, 0, 0, 300, 100);
+
+        drawBodies(airPlinkoBalls);
+
+        fill(255);
+        if(airSignalDiameter >= 9900) {
+            fill(255, 0, 0);
+            World.remove(engine.world, airBucketBottom);
+            World.remove(engine.world, airBucketLeftWall);
+            World.remove(engine.world, airBucketRightWall);
+        } else {
+            drawBodies([airBucketLeftWall, airBucketBottom, airBucketRightWall]);
+        }
+        drawBody(airHelicopterBeacon);
     }
-    drawSpriteWithOffset(airHelicopter, airHelicopterImg, 0, 0, 300, 100);
     /*-------------- End Plinko ----------------*/
+
+    /*------------- Begin Crash ----------------*/
+    
+    /*-------------- End Crash -----------------*/
+
+    /*------------- Draw Ragdoll ---------------*/
+    // Body.setAngle(ragdollCharacter.bodies[3], Math.PI);
+    // drawBodies(ragdollCharacter.bodies);
 }
