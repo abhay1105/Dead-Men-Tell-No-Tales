@@ -73,7 +73,7 @@ let cloud1;
 let airCloudSprings = [];
 let airPastCloudSprings = false;
 let airLightningImg;
-let airLightningTime;
+let airLightningTime = 0;
 
 // Windmills
 let windmills = [];
@@ -109,6 +109,9 @@ let windmillBlades;
 // Tower
 let airRadioTower;
 let airRadioTowerImg;
+let airRadioBeacon;
+let beaconTriggered = false;
+let airSignalDiameter = 0;
 
 // Plinko
 let airPlinkoPegs = [];
@@ -384,7 +387,7 @@ airConditions.push(new Conditional(
             return airPastCloudSprings && !airCameraMoving && angle < Math.PI / 2 && angle > Math.PI / 4;
         },
         () => {
-            // engine.timing.timeScale = 0.5;
+            engine.timing.timeScale = 0.5;
             // frameRate(15);
             airCameraFollowMainBody = true;
             airCamZoom = -500;
@@ -498,15 +501,19 @@ function setup() {
     // windmills = [windmill1, windmill2, windmill3];
 
     airRadioTowerImg = loadImage("resources/RadioTower.png");
-    airRadioTower = Bodies.rectangle(1980, 1300, 300, 600, {
-        isStatic: true,
+    airRadioTower = Bodies.rectangle(18050, 1575, 300, 600, {
+        isStatic: true
+    });
+    airRadioBeacon = Bodies.circle(18050, 1325, 40, {
+        isStatic: true
     });
 
-    airPlinkoPegs = createPegs(21000, 0, 15, 13, 150, 30); // x, y, rows, columns, spacing, radius
+    airPlinkoPegs = createPegs(21000, 0, 6, 13, 150, 30); // x, y, rows, columns, spacing, radius
     airHelicopterImg = loadImage("resources/LeftHelicopter.png");
     airHelicopter = Bodies.rectangle(22500, -300, 300, 100, {
         isStatic: true,
     });
+    World.add(engine.world, airHelicopter);
 
     //run the engine
     Engine.run(engine);
@@ -584,10 +591,14 @@ function draw() {
     /*----------------- End Windmill -------------*/
 
     /*-------------- Draw Springs ----------------*/
-    if(airPastCloudSprings && airLightningTime < 5) {
-        image(airLightningImg, 17950, 1000);
+    if(airPastCloudSprings) {
+        if(airLightningTime < 5) {
+            image(airLightningImg, 17950, 1000);
+            airCameraFollowMainBody = false;
+            beaconTriggered = true;
+        }
+        airLightningTime++;
     }
-    airLightningTime++;
 
     for (let i = 0; i < airCloudSprings.length; i++) {
         const spring = airCloudSprings[i];
@@ -597,8 +608,20 @@ function draw() {
             drawSpriteWithOffset(spring, airThunderCloudImg, 0, 0, 300, 150);
         }
     }
-    drawBody(airRadioTower);
     drawSpriteWithOffset(airRadioTower, airRadioTowerImg, 0, 0, 300, 600);
+    if(beaconTriggered) {
+        fill(0, 255, 0);
+    } else {
+        fill(255, 0, 0);
+    } 
+    drawBody(airRadioBeacon);
+
+    noFill()
+    if(beaconTriggered) {
+        airSignalDiameter += 23;
+        circle(18050, 1325, airSignalDiameter - 100 > 0 ? airSignalDiameter - 100 : 0);
+        circle(18050, 1325, airSignalDiameter);
+    }
     /*-------------- End Springs ----------------*/
 
     /*-------------- Draw Plinko ----------------*/
