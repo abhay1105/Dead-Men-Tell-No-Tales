@@ -1,128 +1,101 @@
+// Benedikt Groß
+// Example shows how to offset the centre of the mass to create a "Weeble"
+
+// Matter.use('matter-wrap');
+
 const Engine = Matter.Engine;
 const Render = Matter.Render;
 const World = Matter.World;
-const Body = Matter.Body;
 const Bodies = Matter.Bodies;
+const Body = Matter.Body;
 const Mouse = Matter.Mouse;
 const MouseConstraint = Matter.MouseConstraint;
-const Constraint = Matter.Constraint;
-const Composites = Matter.Composites;
-const Composite = Matter.Composite;
-const Events = Matter.Events;
-const Vector = Matter.Vector;
 
 const drawMouse = Helpers.drawMouse;
 const drawBody = Helpers.drawBody;
-const drawBodies = Helpers.drawBodies;
-const bodyFromPath = Helpers.bodyFromPath;
 const drawSprite = Helpers.drawSprite;
-const drawConstraint = Helpers.drawConstraint;
 
 let engine;
+let circle;
+let ground;
+let spriteImg;
 
-// Canvas vars
-let absoluteScreenWidth = window.innerWidth;
-let absoluteScreenHeight = window.innerHeight;
 
-let windmills = [];
-let windmillCoords = [];
-
-let windmillVertices = [
-    { x: 5, y: 5 },
-    { x: 50, y: 5 },
-    { x: 50, y: 55 },
-    { x: 200, y: 55 },
-    { x: 200, y: 5 },
-    { x: 200, y: -5 },
-    { x: 5, y: -5 },
-    { x: 5, y: -50 },
-    { x: 55, y: -50 },
-    { x: 55, y: -200 },
-    { x: 5, y: -200 },
-    { x: -5, y: -200 },
-    { x: -5, y: -5 },
-    { x: -50, y: -5 },
-    { x: -50, y: -55 },
-    { x: -200, y: -55 },
-    { x: -200, y: -5 },
-    { x: -200, y: 5 },
-    { x: -5, y: 5 },
-    { x: -5, y: 50 },
-    { x: -55, y: 50 },
-    { x: -55, y: 200 },
-    { x: -5, y: 200 },
-    { x: 5, y: 200 },
-];
-
-function createWindmill(x, y, towerHeight, rotationOffset) {
-    windmillCoords.push([x, y - towerHeight/2]);
-    let tower = Bodies.rectangle(x, y, 50, towerHeight);
-    let topOfTower = Vector.create(x, y - towerHeight / 2);
-    windmillBlades = Bodies.fromVertices(
-        x,
-        y - towerHeight / 2,
-        windmillVertices, 
-        { isStatic: false, friction: 0, restitution: 0.1 }, 
-        [flagInternal=false], 
-        [removeCollinear=0.01], 
-        [minimumArea=10], 
-        [removeDuplicatePoints=0.01]
-    );
-    Body.rotate(windmillBlades, rotationOffset, topOfTower);
-    constraint = Constraint.create({
-        pointA: {x: x, y: y - towerHeight/2},
-        bodyB: windmillBlades,
-        stiffness: 1,
-        length: 0
-    });
-    World.add(engine.world, [windmillBlades, constraint]);
-    return [tower, windmillBlades];
-}
-
-function preload() {
-    // create an engine
-    engine = Engine.create();
-    world = engine.world;
-
-    engine.world.gravity.y = 0;
-}
-
-let testPlane;
 function setup() {
-    createCanvas(absoluteScreenWidth, absoluteScreenHeight, WEBGL);
+  const canvas = createCanvas(800, 600);
 
-    let windmill1 = createWindmill(-300, 350, 400, 0);
-    let windmill2 = createWindmill(0, 360, 310, Math.PI/4 + 0.16);
-    let windmill3 = createWindmill(500, 390, 270, 0);
-    windmills = [windmill1, windmill2, windmill3];
+  // load image
+  spriteImg = loadImage('resources/1F51D.png');
 
-    testPlane = Bodies.rectangle(-700, 10, 100, 25);
-    World.add(engine.world, testPlane);
-    // Body.applyForce(testPlane, testPlane.position, {
-    //     x: 0.1, 
-    //     y: 0
-    // })
-    Body.setAngularVelocity(windmill1[1], 0.2);
+  // create an engine
+  engine = Engine.create();
 
-    //run the engine
-    Engine.run(engine);
+  // bouncy circle with custom centre of mass
+  circle = Bodies.circle(350, 50, 100, {
+    restitution: 1, // bouncy
+    frictionAir: 0.001
+  });
+  setMassCentre(circle, {x: 75, y: 0});
+  Body.scale(circle, 0.75, 0.5);
+  World.add(engine.world, [circle]);
+  engine.world.gravity.y = 1;
+  Body.applyForce(circle, {x: circle.position.x - 75, y: circle.position.y}, {x: 0, y: -0.1});
+
+  // ground
+  ground = Bodies.rectangle(400, height, 1000, 50, {
+    isStatic: true,
+    restitution: 1
+  });
+  World.add(engine.world, [ground]);
+
+  // setup mouse
+  const mouse = Mouse.create(canvas.elt);
+  const mouseParams = {
+    mouse: mouse,
+    constraint: { stiffness: 0.05, angularStiffness: 0 }
+  }
+  mouseConstraint = MouseConstraint.create(engine, mouseParams);
+  mouseConstraint.mouse.pixelRatio = pixelDensity();
+  World.add(engine.world, mouseConstraint);
+
+  // run the engine
+  Engine.run(engine);
 }
 
 function draw() {
-    // Background Stuff
-    background(43, 184, 255);
-    noStroke();
+  background(0);
 
-    /*-------------- Draw Windmill -------------*/
-    for(var i = 0; i < windmills.length; i++) {
-        let windmill = windmills[i];
-        // Body.setPosition(windmill, windmillCoords[i][0], windmillCoords[i][1]);
-        fill(133, 98, 1);
-        drawBody(windmill[0]);
-        fill(255, 255, 255);
-        drawBody(windmill[1]);
-    }
+  noStroke();
+  fill(255);
+  drawBody(circle);
+  // drawSprite(circle, spriteImg);
+  drawSpriteWithOffset(circle, spriteImg, -70, 200, 200);
+  drawMassCenter(circle);
 
-    drawBody(testPlane);
-    drawBody(windmillBlades);
+  fill(128);
+  drawBody(ground);
+
+  drawMouse(mouseConstraint);
+}
+
+function setMassCentre(body, offset) {
+  body.position.x += offset.x;
+  body.position.y += offset.y;
+  body.positionPrev.x += offset.x;
+  body.positionPrev.y += offset.y;
+}
+
+function drawMassCenter(body) {
+  fill('red');
+  ellipse(body.position.x, body.position.y, 5, 5);
+}
+
+function drawSpriteWithOffset(body, img, offsetY, w, h) {
+  const pos = body.position;
+  push();
+  translate(pos.x, pos.y);
+  rotate(body.angle);
+  imageMode(CENTER);
+  image(img, 0, offsetY, w, h);
+  pop();
 }
