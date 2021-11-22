@@ -6,9 +6,9 @@
 // Video 2: https://youtu.be/6s4MJcUyaUE
 // Video 3: https://youtu.be/jN-sW-SxNzk
 // Video 4: https://youtu.be/CdBXmsrkaPs
-
+const Vector = Matter.Vector;
 class Plinko {
-  constructor(x, y, r) {
+  constructor(x, y, r, color, world) {
     var options = {
       restitution: 1,
       friction: 0,
@@ -17,11 +17,12 @@ class Plinko {
     this.body = Bodies.circle(x, y, r, options);
     this.body.label = "plinko";
     this.r = r;
+    this.color = color;
     World.add(world, this.body);
   }
   show() {
     noStroke();
-    fill(127);
+    fill(this.color);
     var pos = this.body.position;
     push();
     translate(pos.x, pos.y);
