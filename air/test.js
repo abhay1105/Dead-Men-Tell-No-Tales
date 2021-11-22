@@ -123,6 +123,12 @@ let airBucketRightWall;
 let airBucketBottom;
 let airBucketBottomConstraint;
 
+// Other Plane Crash
+let airCatchHelicopter;
+let airCatchCloth;
+let airCatchConstraint1;
+let airCatchConstraint2;
+
 // Ragdoll
 let ragdollCharacter;
 var ragdolls = Composite.create();
@@ -162,7 +168,7 @@ function createSpring(x, y, w, h, power, lastSpring) {
         bodyA: trampoline,
         pointA: Vector.create(-(w * 0.5), 0),
         pointB: Vector.add(Vector.create(-(w * 0.5), -(w * 0.5)), Matter.Vector.create(trampoline.position.x, trampoline.position.y)),
-        stiffness: 0.0001,
+        stiffness: 0.001,
         render: {
             visible: true,
         }
@@ -172,7 +178,7 @@ function createSpring(x, y, w, h, power, lastSpring) {
         bodyA: trampoline,
         pointA: Vector.create((w * 0.5), 0),
         pointB: Vector.add(Vector.create((w * 0.5), -(w * 0.5)), Matter.Vector.create(trampoline.position.x, trampoline.position.y)),
-        stiffness: 0.0001,
+        stiffness: 0.001,
         render: {
             visible: true,
         }
@@ -388,6 +394,7 @@ airConditions.push(new Conditional(
     )
 );
 
+// Thrust once past springs and angle is 45 degrees
 let angle;
 airConditions.push(new Conditional(
         () => {
@@ -433,8 +440,8 @@ airConditions.push(new Conditional(
             return true;
         },
         () => {
-            Body.setAngularVelocity(airPlaneBody, 0);
-            Body.setAngle(airPlaneBody, 0);
+            // Body.setAngularVelocity(airPlaneBody, 0);
+            // Body.setAngle(airPlaneBody, 0);
             Body.setVelocity(airPlaneBody, {x: 10, y: 0});
         }, 
         () => {
@@ -518,23 +525,23 @@ function setup() {
     });
 
     // Plinko with Helicopter and Bucket
-    airPlinkoPegs = createPegs(21000, -100, 6, 13, 150, 30); // x, y, rows, columns, spacing, radius
+    airPlinkoPegs = createPegs(21000, 100, 6, 13, 150, 30); // x, y, rows, columns, spacing, radius
     airHelicopterImg = loadImage("resources/LeftHelicopter.png");
-    airHelicopter = Bodies.rectangle(22500, -600, 300, 100, {
+    airHelicopter = Bodies.rectangle(22500, -400, 300, 100, {
         isStatic: true,
     });
     World.add(engine.world, airHelicopter);
 
-    airBucketLeftWall = Bodies.rectangle(22000, -300, 10, 100, {
+    airBucketLeftWall = Bodies.rectangle(22000, -100, 10, 100, {
         isStatic: true,
     });
-    airBucketRightWall = Bodies.rectangle(23000, -300, 10, 100, {
+    airBucketRightWall = Bodies.rectangle(23000, -100, 10, 100, {
         isStatic: true,
     });
-    airBucketBottom = Bodies.rectangle(22500, -240, 1000, 10, {
+    airBucketBottom = Bodies.rectangle(22500, -40, 1000, 10, {
         isStatic: true,
     });
-    airHelicopterBeacon = Bodies.circle(22500, -600, 10, {
+    airHelicopterBeacon = Bodies.circle(22500, -400, 10, {
         isStatic: true,
     })
 
@@ -551,11 +558,12 @@ function setup() {
     World.add(engine.world, [airBucketLeftWall, airBucketRightWall, airBucketBottom]);
     World.add(engine.world, airPlinkoBalls);
 
+    // Add helicopter that catches plane
+
+
     // Add ragdoll
     ragdollCharacter = createRagdoll(absoluteScreenWidth / 2 + airPlaneBody.position.x, 0, 1.3); // x, y, scale
     Composite.add(ragdolls, ragdollCharacter);
-
-
 
     //run the engine
     Engine.run(engine);

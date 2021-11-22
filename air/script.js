@@ -14,18 +14,21 @@ const MouseConstraint = Matter.MouseConstraint;
 const drawMouse = Helpers.drawMouse;
 const drawBody = Helpers.drawBody;
 const drawSprite = Helpers.drawSprite;
+const drawBodies = Helpers.drawBodies;
+const drawConstraints = Helpers.drawConstraints;
 
 let engine;
 let circle;
 let ground;
 let spriteImg;
 
+let airCatchHelicopter;
+let airCatchCloth;
+let airCatchConstraint1;
+let airCatchConstraint2;
 
 function setup() {
   const canvas = createCanvas(800, 600);
-
-  // load image
-  spriteImg = loadImage('resources/1F51D.png');
 
   // create an engine
   engine = Engine.create();
@@ -58,6 +61,16 @@ function setup() {
   mouseConstraint.mouse.pixelRatio = pixelDensity();
   World.add(engine.world, mouseConstraint);
 
+  airCatchCloth = createCloth(300, 300, 10, 5, 5, 5, true, 8);
+  airCatchConstraint1 = Constraint.create({
+    pointA: {x: 200, y: 300},
+    bodyB:  airCatchCloth.bodies[0],
+    stiffness: 1,
+    length: 100,
+  });
+
+  World.add(engine.world, airCatchCloth);
+
   // run the engine
   Engine.run(engine);
 }
@@ -68,9 +81,10 @@ function draw() {
   noStroke();
   fill(255);
   drawBody(circle);
-  // drawSprite(circle, spriteImg);
-  drawSpriteWithOffset(circle, spriteImg, -70, 200, 200);
   drawMassCenter(circle);
+
+  drawBodies(airCatchCloth.bodies);
+  drawConstraints(airCatchCloth.constraints);
 
   fill(128);
   drawBody(ground);
