@@ -32,18 +32,22 @@ let ice_y = 0;
 
 // camera settings
 let iceCamera;
+
 // current position
 let iceCameraX = 0;
 let iceCameraY = 0;
 let iceCameraZ = 0;
+
 // amount to move each frame
 let iceCameraChangeX = 0;
 let iceCameraChangeY = 0;
 let iceCameraChangeZ = 0;
+
 // coordinate we need to reach
 let iceCameraTargetX = 0;
 let iceCameraTargetY = 0;
 let iceCameraTargetZ = 0;
+
 // extra settings
 let iceCameraMoving = false;
 let iceCameraPanningSpeed = 5;
@@ -115,6 +119,11 @@ let ice_lever_weight;
 let ice_basket_left_constraint;
 let ice_basket_right_constraint;
 let ice_basket_constraint;
+let ice_wind_generator;
+let ice_final_ramp;
+let ice_launching_flat;
+let ice_launching_station;
+let ice_fuel_gauge = 0;
 
 // ice images and gifs
 let ice_flag_image;
@@ -134,19 +143,6 @@ var ice_conditions = [];
 // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
 
 let engine;
-let particles = [];
-let pegs = [];
-let mouse;
-let mouseConstraint;
-
-let attractorBody;
-
-class Conditions {
-    constructor(checkFunction, onceDoneFunction) {
-      this.check = checkFunction;
-      this.onceDone = onceDoneFunction;
-    }
-}
 
 // ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
 // ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
@@ -155,19 +151,25 @@ class Conditions {
 // ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
 // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
 
-// BEGINNING OF ICE FUNCTIONS
+// BEGINNING OF ICE FUNCTIONS & CLASSES
 
-function preload() {
-    // ice_bg_gif = createImg("./zombie.gif");
-    ice_bg_img = loadImage("wano.jpeg");
-    ice_font = loadFont("outfit.ttf");
+class IceCondition {
+    constructor(checkFunction, onceDoneFunction) {
+      this.check = checkFunction;
+      this.onceDone = onceDoneFunction;
+    }
 }
 
-function randomNumber(lowerBound, upperBound) {
+// function preload() {
+//     ice_bg_img = loadImage("wano.jpeg");
+//     ice_font = loadFont("outfit.ttf");
+// }
+
+function iceRandomNumber(lowerBound, upperBound) {
     return Math.floor((Math.random() * upperBound) + lowerBound);
 }
 
-function createPegs(x, y, rows, columns, spacing, radius) {
+function iceCreatePegs(x, y, rows, columns, spacing, radius) {
     var pegs = [];
     var startX = x;
     var tempX = startX + 0.5 * (spacing + 2 * radius);
@@ -187,26 +189,26 @@ function createPegs(x, y, rows, columns, spacing, radius) {
     return pegs;
 }
 
-function createDominoes(x, y, width, height, dominoCount, spacing) {
+function iceCreateDominoes(x, y, width, height, dominoCount, spacing) {
     var dominoes = [];
     for (var i = 0;i < dominoCount;i++) {
-        var rgb = "rgb(" + randomNumber(1, 255) + "," + randomNumber(1, 255) + "," + randomNumber(1, 255) + ")";
+        var rgb = "rgb(" + iceRandomNumber(1, 255) + "," + iceRandomNumber(1, 255) + "," + iceRandomNumber(1, 255) + ")";
         dominoes.push(new IceDomino(x, y - height * 0.5, width, height, rgb));
         x += spacing + 0.5 * width;
     }
     return dominoes;
 }
 
-function createPlinkoBalls(numberOfBalls, sourceX, sourceY) {
+function iceCreatePlinkoBalls(numberOfBalls, sourceX, sourceY) {
     var particles = [];
     for (var i = 0;i < numberOfBalls;i++) {
-        var rgb = "rgb(" + randomNumber(1, 255) + "," + randomNumber(1, 255) + "," + randomNumber(1, 255) + ")";
-        particles.push(new IceParticlePlinko(sourceX, sourceY, randomNumber(10, 30), rgb));
+        var rgb = "rgb(" + iceRandomNumber(1, 255) + "," + iceRandomNumber(1, 255) + "," + iceRandomNumber(1, 255) + ")";
+        particles.push(new IceParticlePlinko(sourceX, sourceY, iceRandomNumber(10, 30), rgb));
     }
     return particles;
 }
 
-function spinPinwheels(pinwheelObjects) {
+function iceSpinPinwheels(pinwheelObjects) {
     for (var i = 0;i < pinwheelObjects.length;i++) {
         if (i < 2) {
             Body.setAngle(pinwheelObjects[i], pinwheelObjects[i].angle + pinwheelObjects[i].rotationSpeed);
@@ -216,19 +218,18 @@ function spinPinwheels(pinwheelObjects) {
     }
 }
 
-function MOVE_CAMERA(changeX, changeY, changeZ, durationInSeconds) {
+function ICE_MOVE_CAMERA(changeX, changeY, changeZ, durationInSeconds) {
     if (!iceCameraDebugging) {
         if (useIceCameraPanning) {
-            moveCameraPan(changeX, changeY, changeZ, durationInSeconds, iceFramesPerSecond);
+            iceMoveCameraPan(changeX, changeY, changeZ, durationInSeconds, iceFramesPerSecond);
         } else {
-            moveCamera(changeX, changeY, changeZ);
+            iceMoveCamera(changeX, changeY, changeZ);
         }
     }
 }
 
-function moveCameraPan(changeX, changeY, changeZ, durationInSeconds, currentFrameCount) {
+function iceMoveCameraPan(changeX, changeY, changeZ, durationInSeconds, currentFrameCount) {
     iceCameraMoving = true;
-    // var magnitude = Math.sqrt(Math.pow(changeX, 2) + Math.pow(changeY, 2) + Math.pow(changeZ, 2));
     var totalFrames = durationInSeconds * currentFrameCount;
     iceCameraChangeX = changeX / totalFrames;
     iceCameraChangeY = changeY / totalFrames;
@@ -238,7 +239,7 @@ function moveCameraPan(changeX, changeY, changeZ, durationInSeconds, currentFram
     iceCameraTargetZ = iceCameraZ + changeZ;
 }
 
-function moveCamera(changeX, changeY, changeZ) {
+function iceMoveCamera(changeX, changeY, changeZ) {
     iceCameraX += changeX;
     iceCameraY += changeY;
     iceCameraZ += changeZ;
@@ -251,7 +252,7 @@ document.documentElement.addEventListener(
     }
 );
 
-// END OF ICE FUNCTIONS
+// END OF ICE FUNCTIONS & CLASSES
 
 // ██╗░█████╗░███████╗  ███████╗███╗░░██╗██╗░░░██╗██╗██████╗░░█████╗░███╗░░██╗███╗░░░███╗███████╗███╗░░██╗████████╗
 // ██║██╔══██╗██╔════╝  ██╔════╝████╗░██║██║░░░██║██║██╔══██╗██╔══██╗████╗░██║████╗░████║██╔════╝████╗░██║╚══██╔══╝
@@ -262,7 +263,7 @@ document.documentElement.addEventListener(
 
 function setup() {
 
-    // create the canvas, engine, and the camera
+    // create the canvas, engine, and the camera (all goes into preload)
     const canvas = createCanvas(screen.availWidth, screen.availHeight, WEBGL);
     engine = Engine.create();
     world = engine.world;
@@ -271,9 +272,9 @@ function setup() {
     // technically need to get current instance of camera from previous environment
     
     // starting camera spot for ice environment
-    moveCamera(ice_x + 400, ice_y + 500, 0);
+    iceMoveCamera(ice_x + 400, ice_y + 500, 0);
     
-    // moveCamera(ice_x + 2000, ice_y + 11000, 5000);
+    // moveCamera(ice_x + 15000, ice_y + 15000, 6000);
     iceCameraX = iceCamera.centerX;
     iceCameraY = iceCamera.centerY;
     iceCameraZ = iceCamera.centerZ;
@@ -287,11 +288,11 @@ function setup() {
 
     // BEGINNING OF ICE SETUP CODE
 
-    // creating all of the bodies
+    // creating all of the ice bodies
     ice_starting_rectangle = Bodies.rectangle(ice_x + 330, ice_y + 420, 660, 60, { isStatic: true });
     second_ice_starting_rectangle = Bodies.rectangle(ice_x + 1160, ice_y + 420, 1000, 60, { isStatic: true });
     ice_starting_raised_rectangle = Bodies.rectangle(ice_x + 330, ice_y + 370, 660, 40, { isStatic: true });
-    ice_starting_dominoes = createDominoes(ice_x + 685, ice_y + 340, 20, 100, 17, 15);
+    ice_starting_dominoes = iceCreateDominoes(ice_x + 685, ice_y + 340, 20, 100, 17, 15);
     ice_main_body = Bodies.circle(ice_x + 100, ice_y + 300, 40, { density: 0.11 });
     ice_starting_flag = Bodies.rectangle(ice_x + 1260, ice_y + 360, 60, 60, { isStatic: true });
     ice_curve_vertices = [
@@ -316,14 +317,14 @@ function setup() {
     ];
     ice_curve = Bodies.fromVertices(ice_x + 860, ice_y + 1635, ice_curve_vertices, { isStatic: true, friction: 0, restitution: 1 }, [flagInternal=false], [removeCollinear=0.01], [minimumArea=10], [removeDuplicatePoints=0.01]);
     second_ice_flag = Bodies.rectangle(ice_x + 1465, ice_y + 1985, 60, 60, { isStatic: true });
-    ice_plinko_pegs = createPegs(ice_x + 1600, ice_y + 2050, 15, 13, 100, 30);
+    ice_plinko_pegs = iceCreatePegs(ice_x + 1600, ice_y + 2050, 15, 13, 100, 30);
     ice_landing_rectangle = Bodies.rectangle(ice_x + 4300, ice_y + 2080, 1000, 120, { isStatic: true });
     third_ice_flag = Bodies.rectangle(ice_x + 4350, ice_y + 2050, 60, 60, { isStatic: true });
     ice_plinko_ball_cover = Bodies.rectangle(ice_x + 2570, ice_y - 290, 1360, 20, { isStatic: true });
     ice_plinko_ball_left_wall = Bodies.rectangle(ice_x + 1900, ice_y + 200, 20, 1000, { isStatic: true });
     ice_plinko_ball_right_wall = Bodies.rectangle(ice_x + 3240, ice_y + 200, 20, 1000, { isStatic: true });
     ice_plinko_ball_door = Bodies.rectangle(ice_x + 2570, ice_y + 690, 1360, 20, { isStatic: true });
-    ice_plinko_balls = createPlinkoBalls(175, ice_x + 2570, ice_y + 200);
+    ice_plinko_balls = iceCreatePlinkoBalls(200, ice_x + 2570, ice_y + 200);
     ice_plinko_left_boundary = Bodies.rectangle(ice_x + 1350, ice_y + 4000, 20, 3800, { isStatic: true });
     ice_plinko_right_boundary = Bodies.rectangle(ice_x + 3875, ice_y + 4000, 20, 3800, { isStatic: true });
     Body.rotate(ice_plinko_left_boundary, 3);
@@ -381,12 +382,18 @@ function setup() {
     });
     fourth_ice_flag = Bodies.rectangle(ice_x + 1000, ice_y + 8900, 40, 40, { isStatic: true });
     fifth_ice_flag = Bodies.rectangle(ice_x + 4820, ice_y + 8400, 400, 400, { isStatic: true });
+    ice_wind_generator = Bodies.rectangle(ice_x - 500, ice_y + 11900, 800, 800, { isStatic: true });
+    ice_final_ramp = Bodies.rectangle(ice_x + 7500, ice_y + 16000, 15000, 40, { isStatic: true, friction: 0, restitution: 1, frictionAir: 0 });
+    Body.rotate(ice_final_ramp, -3.05);
+    ice_launching_flat = Bodies.rectangle(ice_x + 17450, ice_y + 16685, 5000, 40, { isStatic: true, friction: 0, restitution: 1, frictionAir: 0 });
+    ice_launching_station = Bodies.rectangle(ice_x + 17800, ice_y + 15785, 800, 1800, { isStatic: true });
 
     // adding all bodies into one array and adding them into the world
     var iceBodies = [ice_starting_rectangle, second_ice_starting_rectangle, ice_main_body, ice_starting_raised_rectangle, ice_starting_flag, ice_curve, second_ice_flag, ice_plinko_pegs, ice_landing_rectangle, 
         third_ice_flag, ice_plinko_ball_cover, ice_plinko_ball_left_wall, ice_plinko_ball_right_wall, ice_plinko_ball_door, ice_plinko_left_boundary, ice_plinko_right_boundary, ice_slant_one, ice_slant_two,
         ice_slant_three, ice_slant_four, ice_spin_left_vertical, ice_spin_left_horizontal, ice_spin_right_vertical, ice_spin_right_horizontal, ice_basket_left_wall, ice_basket_right_wall, ice_basket_bottom, 
-        ice_lever, ice_chain, ice_lever_weight, ice_chain_top_constraint, ice_chain_bottom_constraint, ice_lever_constraint, fourth_ice_flag, fifth_ice_flag];
+        ice_lever, ice_chain, ice_lever_weight, ice_chain_top_constraint, ice_chain_bottom_constraint, ice_lever_constraint, fourth_ice_flag, fifth_ice_flag, ice_wind_generator, ice_final_ramp, ice_launching_flat,
+        ice_launching_station];
     for (var i = 0;i < ice_starting_dominoes.length;i++) {
         iceBodies.push(ice_starting_dominoes[i]);
     }
@@ -404,16 +411,6 @@ function setup() {
     // ██║╚█████╔╝███████╗  ███████╗██║░╚███║░░╚██╔╝░░██║██║░░██║╚█████╔╝██║░╚███║██║░╚═╝░██║███████╗██║░╚███║░░░██║░░░
     // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
 
-    // setup mouse
-    // mouse = Mouse.create(canvas.elt);
-    // const mouseParams = {
-    //     mouse: mouse,
-    //         constraint: { stiffness: 0.05 }
-    // }
-    // mouseConstraint = MouseConstraint.create(engine, mouseParams);
-    // mouseConstraint.mouse.pixelRatio = pixelDensity();
-    // World.add(world, mouseConstraint);
-
     // run the engine
     Engine.run(engine);
 
@@ -428,51 +425,49 @@ function setup() {
 
 // BEGINNING OF ICE CONDITIONS CODE
 
-var firstTime = true;
+var iceFirstTime = true;
 
 ice_conditions.push(
-    new Conditions(
+    new IceCondition(
       () => {
         return Matter.SAT.collides(ice_starting_dominoes[ice_starting_dominoes.length - 1].body, ice_starting_flag).collided;
       },
       () => {
         ice_starting_flag_checkpoint = true;
-        Matter.Body.setPosition(second_ice_starting_rectangle, {x: ice_x + 1250, y: ice_y + 420}); 
-        // MOVE_CAMERA(1200, 800, 2000, iceCameraPanningSpeed);
-        MOVE_CAMERA(4200, 1600, 6500, iceCameraPanningSpeed);
+        Matter.Body.setPosition(second_ice_starting_rectangle, {x: ice_x + 1250, y: ice_y + 420});
+        ICE_MOVE_CAMERA(4200, 1600, 6500, iceCameraPanningSpeed);
       }
     )
 );
 
 ice_conditions.push(
-    new Conditions(
+    new IceCondition(
       () => {
         return Matter.SAT.collides(ice_main_body, second_ice_flag).collided;
       },
       () => {
         second_ice_flag_checkpoint = true;
         Body.applyForce(ice_main_body, {x: ice_main_body.position.x, y: ice_main_body.position.y}, {x: 60, y: -60});
-        // MOVE_CAMERA(400, 200, 0, iceCameraPanningSpeed);
-        MOVE_CAMERA(0, 2700, 500, iceCameraPanningSpeed);
+        ICE_MOVE_CAMERA(0, 2700, 500, iceCameraPanningSpeed);
       }
     )
 );
 
 ice_conditions.push(
-    new Conditions(
+    new IceCondition(
       () => {
         return Matter.SAT.collides(ice_main_body, third_ice_flag).collided;
       },
       () => {
         third_ice_flag_checkpoint = true;
         World.remove(world, ice_plinko_ball_door);
-        MOVE_CAMERA(0, 15000, 0, iceCameraPanningSpeed * 15);
+        ICE_MOVE_CAMERA(0, 20000, 500, iceCameraPanningSpeed * 65);
       }
     )
 );
 
 ice_conditions.push(
-    new Conditions(
+    new IceCondition(
       () => {
         var somethingCollided = false;
         for (var i = 0;i < ice_plinko_balls.length;i++) {
@@ -490,13 +485,47 @@ ice_conditions.push(
 );
 
 ice_conditions.push(
-    new Conditions(
+    new IceCondition(
       () => {
         return Matter.SAT.collides(ice_lever, fifth_ice_flag).collided;
       },
       () => {
         fifth_ice_flag_checkpoint = true;
+        ICE_MOVE_CAMERA(23000, 13000, 3000, iceCameraPanningSpeed * 10);
       }
+    )
+);
+
+ice_conditions.push(
+    new IceCondition(
+      () => {
+        for (var i = 0;i < ice_plinko_balls.length;i++) {
+            var position = ice_plinko_balls[i].body.position;
+            if (position.x > ice_x - 500 && position.y > 11500 && position.y < 12300) {
+                Body.applyForce(ice_plinko_balls[i].body, { x: position.x, y: position.y }, { x: 0.1, y: 0 })
+            }
+        }
+        return false;
+      },
+      () => {}
+    )
+);
+
+ice_conditions.push(
+    new IceCondition(
+      () => {
+        for (var i = 0;i < ice_plinko_balls.length;i++) {
+            if (Matter.SAT.collides(ice_launching_station, ice_plinko_balls[i].body).collided && ice_plinko_balls[i].body.position.y >= ice_y + 15735) {
+                World.remove(world, ice_plinko_balls[i].body);
+                if (ice_fuel_gauge < 1800) {
+                    ice_fuel_gauge += 20;
+                }
+                ice_plinko_balls.splice(i, 1);
+            }
+        }
+        return false;
+      },
+      () => {}
     )
 );
 
@@ -519,9 +548,8 @@ function draw() {
     // ╚═╝░╚════╝░╚══════╝  ╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚══╝╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
 
     // BEGINNING OF ICE BIOME DRAW CODE
-
-    // clear()
     
+    // audio setup
     if (iceOnClicked && !iceSoundPlaying) {
         ice_audio = document.getElementById("jjkAudio");
         ice_audio.volume = iceVolume;
@@ -552,7 +580,7 @@ function draw() {
         iceCameraX += iceCameraChangeX;
         iceCameraY += iceCameraChangeY;
         iceCameraZ += iceCameraChangeZ;
-        moveCamera(iceCameraChangeX, iceCameraChangeY, iceCameraChangeZ);
+        iceMoveCamera(iceCameraChangeX, iceCameraChangeY, iceCameraChangeZ);
         var currentCoordinates = [iceCameraX, iceCameraY, iceCameraZ];
         var coordinateChange = [iceCameraChangeX, iceCameraChangeY, iceCameraChangeZ];
         var targetCoordinates = [iceCameraTargetX, iceCameraTargetY, iceCameraTargetZ];
@@ -584,75 +612,15 @@ function draw() {
         }
     }
 
-
-
-    if (ice_audio_setup_completed) {
-        // find an audio visual code
-        // or... make your own
-
-        background(0);
-
-        // push();
-        // scale(100, 100, 100)
-        // imageMode(CENTER);
-        // image(ice_bg_img, iceCamera.centerX, iceCamera.centerY, screen.availWidth, screen.availHeight);
-        // pop();
-
-        // var centerX = iceCamera.centerX;
-        // var centerY = iceCamera.centerY;
-
-        // var numLayers = 100;
-        // var spacing = 10;
-        // var maxHorizRadius = numLayers * spacing;
-
-        // var colorPalette = ["#0f0639", "#ff006a", "#ff4f00", "#00f9d9"];
-
-        // var angle = Math.PI / 18;
-        // var numLayersToRotate = 1;
-
-        // for (var i = 1;i < numLayers;i++) {
-        //     stroke(colorPalette[i % 4]);
-        //     strokeWeight(1);
-        //     var Radius = 10;
-        //     if (i <= numLayersToRotate) {
-        //         line((cos(angle) * Radius) + centerX - maxHorizRadius, (sin(angle) * Radius) + centerY - maxHorizRadius, (cos(angle) * Radius) + centerX + maxHorizRadius, (sin(angle) * Radius) + centerY - maxHorizRadius);
-        //         line((cos(angle) * Radius) + centerX + maxHorizRadius, (sin(angle) * Radius) + centerY - maxHorizRadius, (cos(angle) * Radius) + centerX + maxHorizRadius, (sin(angle) * Radius) + centerY + maxHorizRadius);
-        //         line((cos(angle) * Radius) + centerX + maxHorizRadius, (sin(angle) * Radius) + centerY + maxHorizRadius, (cos(angle) * Radius) + centerX - maxHorizRadius, (sin(angle) * Radius) + centerY + maxHorizRadius);
-        //         line((cos(angle) * Radius) + centerX - maxHorizRadius, (sin(angle) * Radius) + centerY + maxHorizRadius, (cos(angle) * Radius) + centerX - maxHorizRadius, (sin(angle) * Radius) + centerY - maxHorizRadius);
-        //     } else {
-        //         line(centerX - maxHorizRadius, centerY - maxHorizRadius, centerX + maxHorizRadius, centerY - maxHorizRadius);
-        //         line(centerX + maxHorizRadius, centerY - maxHorizRadius, centerX + maxHorizRadius, centerY + maxHorizRadius);
-        //         line(centerX + maxHorizRadius, centerY + maxHorizRadius, centerX - maxHorizRadius, centerY + maxHorizRadius);
-        //         line(centerX - maxHorizRadius, centerY + maxHorizRadius, centerX - maxHorizRadius, centerY - maxHorizRadius);
-        //     }
-        //     maxHorizRadius -= spacing; 
-        // }
-
-        // if (numLayersToRotate <= numLayers && increasingNumLayers) {
-        //     numLayersToRotate++;
-        //     if (numLayersToRotate == numLayers) {
-        //         increasingNumLayers = false;
-        //     }
-        // } else {
-        //     numLayersToRotate--;
-        //     if (numLayersToRotate == 1) {
-        //         increasingNumLayers = true;
-        //     }
-        // }
- 
-    } else {
-        background(0);
-    }
-
-
     // initial drawing
-    // background(0);
+    background(0);
+    // clear();
     fill(255);
     stroke(255);
 
     // constant movement
     var pinwheelObjects = [ice_spin_left_vertical, ice_spin_left_horizontal, ice_spin_right_vertical, ice_spin_right_horizontal];
-    spinPinwheels(pinwheelObjects);
+    iceSpinPinwheels(pinwheelObjects);
 
     // drawing most of our static bodies
     drawBody(ice_starting_rectangle);
@@ -681,19 +649,9 @@ function draw() {
     drawConstraint(ice_chain_top_constraint);
     drawConstraint(ice_chain_bottom_constraint);
     drawConstraint(ice_lever_constraint);
-
-
-    // for specifically drawing any rotating bodies
-    // var vertice_drawing_group = [ice_spin_left_vertical, ice_spin_left_horizontal, ice_spin_right_vertical, ice_spin_right_horizontal];
-    // for (let j = 0; j < vertice_drawing_group.length; j++) {
-    //     var vertices = vertice_drawing_group[j].vertices;
-    //     console.log(vertices);
-    //     beginShape();
-    //     for (var i = 0; i < vertices.length; i++) {
-    //         vertex(vertices[i].x, vertices[i].y);
-    //     }
-    //     endShape();
-    // }
+    drawBody(ice_final_ramp);
+    drawBody(ice_launching_flat);
+    drawBody(ice_launching_station);
 
     // if-statements to check for flag collisions and color changes
     if (ice_starting_flag_checkpoint) {
@@ -737,6 +695,7 @@ function draw() {
     textSize(170);
     textFont(ice_font);
     if (fifth_ice_flag_checkpoint) {
+
         fill("rgb(0, 255, 0)");
         stroke("rgb(0, 255, 0)");
         drawBody(fifth_ice_flag);
@@ -750,10 +709,21 @@ function draw() {
         line(ice_x + 4620, ice_y + 8400, ice_x + 3120, ice_y + 8400);
         line(ice_x + 3120, ice_y + 8400, ice_x + 3120, ice_y + 10400);
         line(ice_x + 3120, ice_y + 10400, ice_x + 1020, ice_y + 10400);
-        line(ice_x + 1020, ice_y + 10400, ice_x - 300, ice_y + 11500);
+        line(ice_x + 1020, ice_y + 10400, ice_x - 500, ice_y + 11500);
+        stroke(255);
+        line(ice_x + 200, ice_y + 11600, ice_x + 1200, ice_y + 11600);
+        line(ice_x + 100, ice_y + 11750, ice_x + 1100, ice_y + 11750);
+        line(ice_x + 200, ice_y + 11900, ice_x + 1200, ice_y + 11900);
+        line(ice_x + 100, ice_y + 12050, ice_x + 1100, ice_y + 12050);
+        line(ice_x + 200, ice_y + 12200, ice_x + 1200, ice_y + 12200);
         pop();
+        drawBody(ice_wind_generator);
+
+        fill(255);
+        text('WIND', ice_x - 725, ice_y + 11970);
         
     } else {
+
         fill("rgb(255, 0, 0)");
         stroke("rgb(255, 0, 0)");
         drawBody(fifth_ice_flag);
@@ -767,10 +737,20 @@ function draw() {
         line(ice_x + 4620, ice_y + 8400, ice_x + 3120, ice_y + 8400);
         line(ice_x + 3120, ice_y + 8400, ice_x + 3120, ice_y + 10400);
         line(ice_x + 3120, ice_y + 10400, ice_x + 1020, ice_y + 10400);
-        line(ice_x + 1020, ice_y + 10400, ice_x - 300, ice_y + 11500);
+        line(ice_x + 1020, ice_y + 10400, ice_x - 500, ice_y + 11500);
         pop();
+        drawBody(ice_wind_generator);
+
+        fill(0);
+        text('WIND', ice_x - 725, ice_y + 11970);
+
     }
 
+    // drawing space station fuel gauge
+    rectMode(CENTER);
+    fill("rgb(0, 255, 0)");
+    stroke("rgb(0, 255, 0)");
+    rect(ice_x + 17800, ice_y + 16685 - ice_fuel_gauge * 0.5, 800, ice_fuel_gauge);
 
     // drawing the plinko pegs and balls
     for (var i = 0;i < ice_plinko_pegs.length;i++) {
@@ -799,14 +779,13 @@ function draw() {
     drawBody(ice_main_body);
     
     // starts the process after about 3 seconds
-    if (firstTime && frameCount >= 180) {
-        let x = ice_starting_dominoes[0].body.position.x;
-        let y = ice_starting_dominoes[0].body.position.y;
-        Body.applyForce(ice_main_body, {x: ice_main_body.position.x, y: ice_main_body.position.y}, {x: 35, y: 0});
-        firstTime = false;
-        // MOVE_CAMERA(500, 0, 0, iceCameraPanningSpeed);
-        MOVE_CAMERA(500, 0, 0, iceCameraPanningSpeed);
-    }
+    // if (iceFirstTime && frameCount >= 180) {
+    //     let x = ice_starting_dominoes[0].body.position.x;
+    //     let y = ice_starting_dominoes[0].body.position.y;
+    //     Body.applyForce(ice_main_body, {x: ice_main_body.position.x, y: ice_main_body.position.y}, {x: 35, y: 0});
+    //     iceFirstTime = false;
+    //     ICE_MOVE_CAMERA(500, 0, 0, iceCameraPanningSpeed);
+    // }
 
     // END OF ICE BIOME DRAW CODE
 
