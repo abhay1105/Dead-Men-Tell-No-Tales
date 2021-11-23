@@ -160,10 +160,11 @@ class IceCondition {
     }
 }
 
-// function preload() {
-//     ice_bg_img = loadImage("wano.jpeg");
-//     ice_font = loadFont("outfit.ttf");
-// }
+function preload() {
+    ice_bg_img = loadImage("./wano.jpeg");
+    ice_font = loadFont("./outfit.ttf");
+    console.log(window.innerWidth, window.innerHeight);
+}
 
 function iceRandomNumber(lowerBound, upperBound) {
     return Math.floor((Math.random() * upperBound) + lowerBound);
@@ -264,7 +265,7 @@ document.documentElement.addEventListener(
 function setup() {
 
     // create the canvas, engine, and the camera (all goes into preload)
-    const canvas = createCanvas(screen.availWidth, screen.availHeight, WEBGL);
+    const canvas = createCanvas(window.innerWidth, window.innerHeight, WEBGL);
     engine = Engine.create();
     world = engine.world;
     iceCamera = createCamera();
@@ -613,8 +614,8 @@ function draw() {
     }
 
     // initial drawing
-    background(0);
-    // clear();
+    // background(0);
+    clear();
     fill(255);
     stroke(255);
 
@@ -779,13 +780,13 @@ function draw() {
     drawBody(ice_main_body);
     
     // starts the process after about 3 seconds
-    // if (iceFirstTime && frameCount >= 180) {
-    //     let x = ice_starting_dominoes[0].body.position.x;
-    //     let y = ice_starting_dominoes[0].body.position.y;
-    //     Body.applyForce(ice_main_body, {x: ice_main_body.position.x, y: ice_main_body.position.y}, {x: 35, y: 0});
-    //     iceFirstTime = false;
-    //     ICE_MOVE_CAMERA(500, 0, 0, iceCameraPanningSpeed);
-    // }
+    if (iceFirstTime && frameCount >= 180) {
+        let x = ice_starting_dominoes[0].body.position.x;
+        let y = ice_starting_dominoes[0].body.position.y;
+        Body.applyForce(ice_main_body, {x: ice_main_body.position.x, y: ice_main_body.position.y}, {x: 35, y: 0});
+        iceFirstTime = false;
+        ICE_MOVE_CAMERA(500, 0, 0, iceCameraPanningSpeed);
+    }
 
     // END OF ICE BIOME DRAW CODE
 
