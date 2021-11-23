@@ -5,7 +5,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 let engine, world, canvas;
-let currentStage = "ice";
+let currentStage = "rainforest";
 
 const Engine = Matter.Engine;
 const Render = Matter.Render;
@@ -33,6 +33,9 @@ function preload() {
   world = engine.world;
 
   // resource loading
+
+  // rainforest
+  rainforest_pirateImg = loadImage("./resources/pirateship.png");
 
   // ice
   ice_font = loadFont("./resources/outfit.ttf");
@@ -69,10 +72,68 @@ function preload() {
 
 // RAINFOREST
 
+let rainforest_cam;
+let rainforest_boxes = [];
+let rainforest_circles = [];
+let rainforest_grounds = [];
+let rainforest_mConstraint;
+let rainforest_ground;
+let rainforest_ground2;
+let rainforest_canvas;
+let rainforest_ball;
+let rainforest_rope;
+let rainforest_chain;
+let rainforest_boxesChain;
+let rainforest_car;
+let rainforest_ice_curve;
+let rainforest_ice_curve2;
+let rainforest_carBallConstraint;
+let rainforest_constrainOnce = false;
+let rainforest_clicked = false;
+let rainforest_trigger;
+let rainforest_showTrigger = true;
+let rainforest_plinko_pegs = [];
+let rainforest_plinko_balls = [];
+let rainforest_drop;
+let rainforest_dropVertices;
+let rainforest_pendulumStick;
+let rainforest_pendulumBall;
+let rainforest_pendulumConstraint;
+let rainforest_ground3;
+let rainforest_finalBall;
+let rainforest_startEngine = false;
+let rainforest_ramp;
+let rainforest_rampRemoved = false;
+let rainforest_startRotation = false;
+let rainforest_rotationNum = Math.PI / 21
+let rainforest_floatingBlocks = []
+let rainforest_engine2 = false;
+let rainforest_pirateImg;
+let rainforest_hills = []
 
+let rainforest_x = 0;
+let rainforest_y = 0;
 
+var rainforest_conditions = [];
 
+class RainforestConditions {
+  constructor(checkFunction, onceDoneFunction) {
+    this.check = checkFunction;
+    this.onceDone = onceDoneFunction;
+  }
+}
 
+function rainforest_randomNumber(lowerBound, upperBound) {
+  return Math.floor((Math.random() * upperBound) + lowerBound);
+}
+
+function rainforest_moveCam(mainBody) {
+  rainforest_cam.setPosition(mainBody.body.position.x + 200, mainBody.body.position.y - 100, 500);
+}
+
+function rainforest_diffMoveCam(x, y, zoom) {
+  rainforest_cam.setPosition(x, y, zoom);
+}
 
 
 // ICE
@@ -81,8 +142,8 @@ function preload() {
 // BEGINNING OF ICE VARIABLE INITIALIZATION
 
 // ice environment
-let ice_x = 0;
-let ice_y = 0;
+let ice_x = rainforest_x + 6750;
+let ice_y = rainforest_y + 4650;
 
 // camera settings
 let iceCamera;
@@ -199,11 +260,6 @@ class IceCondition {
   }
 }
 
-// function preload() {
-//     ice_bg_img = loadImage("wano.jpeg");
-//     ice_font = loadFont("outfit.ttf");
-// }
-
 function iceRandomNumber(lowerBound, upperBound) {
   return Math.floor((Math.random() * upperBound) + lowerBound);
 }
@@ -294,564 +350,10 @@ document.documentElement.addEventListener(
 // END OF ICE FUNCTIONS & CLASSES
 
 
-
-
 // SPACE
 
 
-let space_screenTop;
-let space_allObjects = [];
-let space_mainBody;
-let space_followingMainBody = true;
-let space_startingX = ice_x;
-let space_startingY = ice_y + 14085;
-// let space_startingX = ice_x;
-// let space_startingY = ice_y;
-let space_bg;
-function space_moveWithMainBody(mainBody) {
-  cam.setPosition(mainBody.position.x, mainBody.position.y, 5000);
-}
-/* ----Planets------------------------------------------------------*/
-let space_greyPlanet;
-let space_greyPlanetImg;
-let space_bluePlanet;
-let space_bluePlanetImg;
-let space_redPlanet;
-let space_redPlanetImg;
-let space_brownPlanet;
-let space_brownPlanetImg;
-let space_orangePlanet;
-let space_orangePlanetImg;
-/* ----Rocket-------------------------------------------------------*/
-let space_rocketImg;
-let space_rocketBody;
-/* ----Sun----------------------------------------------------------*/
-let space_sun;
-let space_sunImg;
-let space_explosionImg;
-/* ----Gravity------------------------------------------------------*/
-let space_gravityObjects = [];
-let space_gameGravity = 0.001;
-let space_lastTimeStamp = 0;
-function gravity() {
-  let length = space_gravityObjects.length;
-  // compare two balls - because every object is attracted to another
-  for (let i = 0; i < length; i++) {
-    for (let j = 0; j < length; j++) {
-      // assuming they are not the same thing
-      if (i != j) {
-        let Dx =
-          space_gravityObjects[j].position.x -
-          space_gravityObjects[i].position.x;
-        let Dy =
-          space_gravityObjects[j].position.y -
-          space_gravityObjects[i].position.y;
-        let force =
-          ((engine.timing.timestamp - space_lastTimeStamp) *
-            space_gameGravity *
-            space_gravityObjects[j].mass *
-            space_gravityObjects[i].mass) /
-          Math.sqrt(Dx * Dx + Dy * Dy);
-        let angle = Math.atan2(Dy, Dx);
-        space_gravityObjects[i].force.x += force * Math.cos(angle);
-        space_gravityObjects[i].force.y += force * Math.sin(angle);
-      }
-    }
-  }
-  space_lastTimeStamp = engine.timing.timestamp;
-}
-/* ----Plinko-------------------------------------------------------*/
-let space_particles = [];
-let space_plinkos = [];
-let space_bounds = [];
 
-function space_newParticle(x, y) {
-  let p = new Particle(x, y, 10);
-  space_particles.push(p);
-}
-/* ----Circular Orbit-----------------------------------------------*/
-let space_ball = [];
-let space_circularOrbitObjects = [];
-let space_orbitProperties = {
-  width: screen.width, //1200,
-  height: screen.height, //800,
-  amount: 5, //slows around 100 balls
-  gravity: 0.001,
-  gravityAddition: 0,
-  ballSize: 10,
-  friction: 0,
-  frictionStatic: 1,
-  frictionAir: 0,
-  restitution: 0.5,
-  velocityVector: true,
-  lastTimeStamp: 0,
-};
-function space_preMadeBody(x, y, r, sides, Vx, Vy) {
-  let i = space_ball.length;
-  space_ball.push();
-  space_ball[i] = Bodies.polygon(x, y, sides, r, {
-    friction: space_orbitProperties.friction,
-    frictionStatic: space_orbitProperties.frictionStatic,
-    frictionAir: space_orbitProperties.frictionAir,
-    restitution: space_orbitProperties.restitution,
-  });
-  Matter.Body.setVelocity(space_ball[i], {
-    x: Vx,
-    y: Vy,
-  });
-  World.add(engine.world, space_ball[i]);
-  space_circularOrbitObjects.push(space_ball[i]);
-}
-function space_circularOrbit() {
-  let length = space_circularOrbitObjects.length;
-  for (let i = 0; i < length; i++) {
-    for (let j = 0; j < length; j++) {
-      if (i != j) {
-        let Dx =
-          space_circularOrbitObjects[j].position.x -
-          space_circularOrbitObjects[i].position.x;
-        let Dy =
-          space_circularOrbitObjects[j].position.y -
-          space_circularOrbitObjects[i].position.y;
-        let force =
-          ((engine.timing.timestamp - space_orbitProperties.lastTimeStamp) *
-            space_orbitProperties.gravity *
-            space_circularOrbitObjects[j].mass *
-            space_circularOrbitObjects[i].mass) /
-          Math.sqrt(Dx * Dx + Dy * Dy);
-        let angle = Math.atan2(Dy, Dx);
-        space_circularOrbitObjects[i].force.x += force * Math.cos(angle);
-        space_circularOrbitObjects[i].force.y += force * Math.sin(angle);
-      }
-    }
-  }
-  space_orbitProperties.lastTimeStamp = engine.timing.timestamp;
-}
-/* ----Black Hole----------------------------------------------------*/
-let space_blackHole;
-let space_blackHoleImg;
-/* ----Vacuum--------------------------------------------------------*/
-let space_topBound;
-let space_bottomBound;
-let space_rightBound;
-let space_leftBound;
-/* ----Ending Sequence-----------------------------------------------*/
-let space_blackHoleObjects = [];
-let space_leftRect;
-let space_rightRect;
-let space_topRect;
-let space_bottomRect;
-let space_smallAsteroid;
-let space_smallAsteroids = [];
-let space_smallBrown;
-let space_smallBrowns = [];
-let space_smallBlue;
-let space_smallBlues = [];
-let space_smallRed;
-let space_smallReds = [];
-let space_smallOrange;
-let space_smallOranges = [];
-
-let space_endSlide;
-let space_endSlideImg;
-let space_showingEndingSequence = false;
-/* ----Ragdoll-------------------------------------------------------*/
-let space_ragdollCharacter;
-let space_ragdolls = Composite.create();
-function space_createRagdoll(x, y, scale, options) {
-  scale = typeof scale === "undefined" ? 1 : scale;
-
-  let Body = Matter.Body,
-    Bodies = Matter.Bodies,
-    Constraint = Matter.Constraint,
-    Composite = Matter.Composite,
-    Common = Matter.Common;
-
-  let headOptions = Common.extend(
-    {
-      label: "head",
-      collisionFilter: {
-        group: Body.nextGroup(true),
-      },
-      chamfer: {
-        radius: [15 * scale, 15 * scale, 15 * scale, 15 * scale],
-      },
-      render: {
-        fillStyle: "#FFFFFF",
-      },
-    },
-    options
-  );
-
-  let chestOptions = Common.extend(
-    {
-      label: "chest",
-      collisionFilter: {
-        group: Body.nextGroup(true),
-      },
-      chamfer: {
-        radius: [20 * scale, 20 * scale, 26 * scale, 26 * scale],
-      },
-      render: {
-        fillStyle: "#FFFFFF",
-      },
-    },
-    options
-  );
-
-  let leftArmOptions = Common.extend(
-    {
-      label: "left-arm",
-      collisionFilter: {
-        group: Body.nextGroup(true),
-      },
-      chamfer: {
-        radius: 10 * scale,
-      },
-      render: {
-        fillStyle: "#FFFFFF2",
-      },
-    },
-    options
-  );
-
-  let leftLowerArmOptions = Common.extend({}, leftArmOptions, {
-    render: {
-      fillStyle: "#FFFFFF",
-    },
-  });
-
-  let rightArmOptions = Common.extend(
-    {
-      label: "right-arm",
-      collisionFilter: {
-        group: Body.nextGroup(true),
-      },
-      chamfer: {
-        radius: 10 * scale,
-      },
-      render: {
-        fillStyle: "#FFFFFF",
-      },
-    },
-    options
-  );
-
-  let rightLowerArmOptions = Common.extend({}, rightArmOptions, {
-    render: {
-      fillStyle: "#FFFFFF",
-    },
-  });
-
-  let leftLegOptions = Common.extend(
-    {
-      label: "left-leg",
-      collisionFilter: {
-        group: Body.nextGroup(true),
-      },
-      chamfer: {
-        radius: 10 * scale,
-      },
-      render: {
-        fillStyle: "#FFFFFF",
-      },
-    },
-    options
-  );
-
-  let leftLowerLegOptions = Common.extend({}, leftLegOptions, {
-    render: {
-      fillStyle: "#FFFFFF",
-    },
-  });
-
-  let rightLegOptions = Common.extend(
-    {
-      label: "right-leg",
-      collisionFilter: {
-        group: Body.nextGroup(true),
-      },
-      chamfer: {
-        radius: 10 * scale,
-      },
-      render: {
-        fillStyle: "#FFFFFF",
-      },
-    },
-    options
-  );
-
-  let rightLowerLegOptions = Common.extend({}, rightLegOptions, {
-    render: {
-      fillStyle: "#FFFFFF",
-    },
-  });
-
-  let head = Bodies.rectangle(
-    x,
-    y - 60 * scale,
-    34 * scale,
-    40 * scale,
-    headOptions
-  );
-  let chest = Bodies.rectangle(x, y, 55 * scale, 80 * scale, chestOptions);
-  let rightUpperArm = Bodies.rectangle(
-    x + 39 * scale,
-    y - 15 * scale,
-    20 * scale,
-    40 * scale,
-    rightArmOptions
-  );
-  let rightLowerArm = Bodies.rectangle(
-    x + 39 * scale,
-    y + 25 * scale,
-    20 * scale,
-    60 * scale,
-    rightLowerArmOptions
-  );
-  let leftUpperArm = Bodies.rectangle(
-    x - 39 * scale,
-    y - 15 * scale,
-    20 * scale,
-    40 * scale,
-    leftArmOptions
-  );
-  let leftLowerArm = Bodies.rectangle(
-    x - 39 * scale,
-    y + 25 * scale,
-    20 * scale,
-    60 * scale,
-    leftLowerArmOptions
-  );
-  let leftUpperLeg = Bodies.rectangle(
-    x - 20 * scale,
-    y + 57 * scale,
-    20 * scale,
-    40 * scale,
-    leftLegOptions
-  );
-  let leftLowerLeg = Bodies.rectangle(
-    x - 20 * scale,
-    y + 97 * scale,
-    20 * scale,
-    60 * scale,
-    leftLowerLegOptions
-  );
-  let rightUpperLeg = Bodies.rectangle(
-    x + 20 * scale,
-    y + 57 * scale,
-    20 * scale,
-    40 * scale,
-    rightLegOptions
-  );
-  let rightLowerLeg = Bodies.rectangle(
-    x + 20 * scale,
-    y + 97 * scale,
-    20 * scale,
-    60 * scale,
-    rightLowerLegOptions
-  );
-
-  let chestToRightUpperArm = Constraint.create({
-    bodyA: chest,
-    pointA: {
-      x: 24 * scale,
-      y: -23 * scale,
-    },
-    pointB: {
-      x: 0,
-      y: -8 * scale,
-    },
-    bodyB: rightUpperArm,
-    stiffness: 0.6,
-    render: {
-      visible: false,
-    },
-  });
-
-  let chestToLeftUpperArm = Constraint.create({
-    bodyA: chest,
-    pointA: {
-      x: -24 * scale,
-      y: -23 * scale,
-    },
-    pointB: {
-      x: 0,
-      y: -8 * scale,
-    },
-    bodyB: leftUpperArm,
-    stiffness: 0.6,
-    render: {
-      visible: false,
-    },
-  });
-
-  let chestToLeftUpperLeg = Constraint.create({
-    bodyA: chest,
-    pointA: {
-      x: -10 * scale,
-      y: 30 * scale,
-    },
-    pointB: {
-      x: 0,
-      y: -10 * scale,
-    },
-    bodyB: leftUpperLeg,
-    stiffness: 0.6,
-    render: {
-      visible: false,
-    },
-  });
-
-  let chestToRightUpperLeg = Constraint.create({
-    bodyA: chest,
-    pointA: {
-      x: 10 * scale,
-      y: 30 * scale,
-    },
-    pointB: {
-      x: 0,
-      y: -10 * scale,
-    },
-    bodyB: rightUpperLeg,
-    stiffness: 0.6,
-    render: {
-      visible: false,
-    },
-  });
-
-  let upperToLowerRightArm = Constraint.create({
-    bodyA: rightUpperArm,
-    bodyB: rightLowerArm,
-    pointA: {
-      x: 0,
-      y: 15 * scale,
-    },
-    pointB: {
-      x: 0,
-      y: -25 * scale,
-    },
-    stiffness: 0.6,
-    render: {
-      visible: false,
-    },
-  });
-
-  let upperToLowerLeftArm = Constraint.create({
-    bodyA: leftUpperArm,
-    bodyB: leftLowerArm,
-    pointA: {
-      x: 0,
-      y: 15 * scale,
-    },
-    pointB: {
-      x: 0,
-      y: -25 * scale,
-    },
-    stiffness: 0.6,
-    render: {
-      visible: false,
-    },
-  });
-
-  let upperToLowerLeftLeg = Constraint.create({
-    bodyA: leftUpperLeg,
-    bodyB: leftLowerLeg,
-    pointA: {
-      x: 0,
-      y: 20 * scale,
-    },
-    pointB: {
-      x: 0,
-      y: -20 * scale,
-    },
-    stiffness: 0.6,
-    render: {
-      visible: false,
-    },
-  });
-
-  let upperToLowerRightLeg = Constraint.create({
-    bodyA: rightUpperLeg,
-    bodyB: rightLowerLeg,
-    pointA: {
-      x: 0,
-      y: 20 * scale,
-    },
-    pointB: {
-      x: 0,
-      y: -20 * scale,
-    },
-    stiffness: 0.6,
-    render: {
-      visible: false,
-    },
-  });
-
-  let headContraint = Constraint.create({
-    bodyA: head,
-    pointA: {
-      x: 0,
-      y: 25 * scale,
-    },
-    pointB: {
-      x: 0,
-      y: -35 * scale,
-    },
-    bodyB: chest,
-    stiffness: 0.6,
-    render: {
-      visible: false,
-    },
-  });
-
-  let legToLeg = Constraint.create({
-    bodyA: leftLowerLeg,
-    bodyB: rightLowerLeg,
-    stiffness: 0.01,
-    render: {
-      visible: false,
-    },
-  });
-
-  let person = Composite.create({
-    bodies: [
-      chest,
-      head,
-      leftLowerArm,
-      leftUpperArm,
-      rightLowerArm,
-      rightUpperArm,
-      leftLowerLeg,
-      rightLowerLeg,
-      leftUpperLeg,
-      rightUpperLeg,
-    ],
-    constraints: [
-      upperToLowerLeftArm,
-      upperToLowerRightArm,
-      chestToLeftUpperArm,
-      chestToRightUpperArm,
-      headContraint,
-      upperToLowerLeftLeg,
-      upperToLowerRightLeg,
-      chestToLeftUpperLeg,
-      chestToRightUpperLeg,
-      legToLeg,
-    ],
-  });
-
-  return person;
-}
-/* ----Conditions Class----------------------------------------------*/
-let space_conditions = [];
-class space_Conditions {
-  constructor(checkFunction, notDoneFunction, onceDoneFunction) {
-    this.check = checkFunction;
-    this.notDone = notDoneFunction;
-    this.onceDone = onceDoneFunction;
-  }
-}
 
 
 
@@ -871,22 +373,135 @@ class space_Conditions {
 
 // RAINFOREST
 
+function rainforestSetup() {
+  rainforest_cam = createCamera()
+  let pi = Math.PI
+
+  rainforest_ramp = Bodies.rectangle(rainforest_x + 1020, rainforest_y + 407, 600, 100, { isStatic: true })
+  World.add(world, rainforest_ramp)
+
+  rainforest_ball = new Ball(rainforest_x + -600, rainforest_y - 200, 30)
+  rainforest_finalBall = Bodies.circle(rainforest_x + 6450, rainforest_y + 4500, 40, { density: 0.11 });
+  // finalBall = new Ball(5000, 4000, 30, {isStatic: true})
+  World.add(world, rainforest_finalBall)
+  rainforest_ground = Bodies.rectangle(rainforest_x + 0, rainforest_y + 407, width, 100, { isStatic: true })
+  World.add(world, rainforest_ground)
+
+  rainforest_ground2 = Bodies.rectangle(rainforest_x + 2500, rainforest_y + 2500, 5500, 100, { isStatic: true })
+  World.add(world, rainforest_ground2)
+
+  rainforest_ground3 = Bodies.rectangle(rainforest_x + 6450, rainforest_y + 4600, 100, 100, { isStatic: true })
+  World.add(world, rainforest_ground3)
+
+  rainforest_pendulumBall = Bodies.circle(rainforest_x + 6300, rainforest_y + 4300, 50, { isStatic: false })
+  rainforest_pendulumConstraint = Constraint.create({
+    pointA: { x: rainforest_x + 6300, y: rainforest_y + 4100 },
+    bodyB: rainforest_pendulumBall,
+    length: 400,
+    stiffness: 0.4
+  })
+  World.add(world, rainforest_pendulumConstraint)
+  World.add(world, rainforest_pendulumBall)
+
+  // floatingBlocks.push(
+  //     Bodies.rectangle(1020, 600, 600, 100, {isStatic: true}),
+  //     Bodies.rectangle(1420, 800, 600, 100, {isStatic: true}),
+  //     Bodies.rectangle(1020, 1000, 600, 100, {isStatic: true}),
+  //     Bodies.rectangle(1420, 1200, 600, 100, {isStatic: true}),
+  // )
+  for (var i = 0; i < rainforest_floatingBlocks.length; i++) {
+
+  }
+  World.add(world, rainforest_floatingBlocks)
+  // boxes.push(new TreeTrunk(700, 250, 30, 220))
+  // circles.push(new TreeTop(700, 65, 75))
+
+  // boxes.push(new TreeTrunk(1200, 250, 30, 220))
+  // circles.push(new TreeTop(1200, 65, 75))
+
+  // boxes.push(new TreeTrunk(1500, 250, 30, 220))
+  // circles.push(new TreeTop(1500, 65, 75))
+
+  rainforest_dropVertices = [
+    { x: 0, y: 0 },
+    { x: 60, y: 250 },
+    { x: 120, y: 480 },
+    { x: 180, y: 690 },
+    { x: 240, y: 880 },
+    { x: 300, y: 1050 },
+    { x: 360, y: 1200 },
+    { x: 420, y: 1330 },
+    { x: 480, y: 1440 },
+    { x: 540, y: 1520 },
+    { x: 570, y: 1550 },
+    { x: 600, y: 1560 },
+    { x: 640, y: 1550 },
+    { x: 680, y: 1540 },
+    { x: 760, y: 1500 },
+    { x: 760, y: 2000 },
+    { x: -660, y: 2000 },
+    { x: -660, y: 0 }
+  ];
+
+  rainforest_drop = Bodies.fromVertices(rainforest_x + 5600, rainforest_y + 4200, rainforest_dropVertices, { isStatic: true, friction: 0, restitution: 1 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]);
+
+  World.add(world, rainforest_drop)
 
 
+  rainforest_car = Composites.car(rainforest_x + -600, rainforest_y - 100, 200, 40, 40);
+  World.add(world, rainforest_car)
+
+  rainforest_trigger = Bodies.rectangle(rainforest_x + 5350, rainforest_y + 2500, 200, 100, { isStatic: true })
+  World.add(world, rainforest_trigger)
+
+
+  let rainforest_wave_vertices = []
+
+  let num = 30
+  let change = (2 * pi) / num
+
+  for (var i = 0; i < (2 * pi); i += change) {
+    x = i;
+    y = Math.sin(i + (3 * pi / 2)) + 1
+
+    console.log(200 * x, -1000 * y)
+
+    rainforest_wave_vertices.push({ x: 200 * x, y: -400 * y })
+  }
+
+  console.log(rainforest_wave_vertices)
+
+  // ice_curve = Bodies.fromVertices(2500, 2375, rainforest_wave_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]);
+
+  // ice_curve2 = Bodies.fromVertices(3200, 2375, rainforest_wave_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]);
+
+  rainforest_hills.push(Bodies.fromVertices(rainforest_x + 3000, rainforest_y + 2200, rainforest_wave_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]), Bodies.fromVertices(rainforest_x + 4300, rainforest_y + 2200, rainforest_wave_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]), Bodies.fromVertices(rainforest_x + 1800, rainforest_y + 2200, rainforest_wave_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]))
+
+  World.add(world, rainforest_hills)
+
+  // ice_curve = Bodies.rectangle(0, 0, 200, 100, {chamfer: {radius: 50}})
+  // World.add(world, ice_curve)
+  // World.add(world, ice_curve2)
+  console.log(rainforest_ball)
+  console.log(rainforest_car)
+
+  // Body.applyForce(ball.body, ball.body.position, {x: 0.5, y: 0})
+}
 
 
 // ICE
 
 function iceSetup() {
 
-  iceCamera = createCamera();
+  // iceCamera = createCamera();
   // technically need to get current instance of camera from previous environment
   // starting camera spot for ice environment
-  iceMoveCamera(ice_x + 400, ice_y + 500, 0);
+  // iceMoveCamera(ice_x + 400, ice_y + 500, 0);
+  // ICE_MOVE_CAMERA(500, 0, 0, iceCameraPanningSpeed);
   // moveCamera(ice_x + 15000, ice_y + 15000, 6000);
-  iceCameraX = iceCamera.centerX;
-  iceCameraY = iceCamera.centerY;
-  iceCameraZ = iceCamera.centerZ;
+  // iceCameraX = iceCamera.centerX;
+  // iceCameraY = iceCamera.centerY;
+  // iceCameraZ = iceCamera.centerZ;
 
   // BEGINNING OF ICE SETUP CODE
 
@@ -895,7 +510,7 @@ function iceSetup() {
   second_ice_starting_rectangle = Bodies.rectangle(ice_x + 1160, ice_y + 420, 1000, 60, { isStatic: true });
   ice_starting_raised_rectangle = Bodies.rectangle(ice_x + 330, ice_y + 370, 660, 40, { isStatic: true });
   ice_starting_dominoes = iceCreateDominoes(ice_x + 685, ice_y + 340, 20, 100, 17, 15);
-  ice_main_body = Bodies.circle(ice_x + 100, ice_y + 300, 40, { density: 0.11 });
+  // ice_main_body = Bodies.circle(ice_x + 100, ice_y + 300, 40, { density: 0.11 });
   ice_starting_flag = Bodies.rectangle(ice_x + 1260, ice_y + 360, 60, 60, { isStatic: true });
   ice_curve_vertices = [
     { x: 0, y: 0 },
@@ -946,9 +561,9 @@ function iceSetup() {
   ice_basket_left_wall = Bodies.rectangle(ice_x + 1000, ice_y + 9000, 40, 600, { isStatic: true });
   ice_basket_right_wall = Bodies.rectangle(ice_x + 1840, ice_y + 9000, 40, 600, { isStatic: true });
   ice_basket_bottom = Bodies.rectangle(ice_x + 1420, ice_y + 9280, 800, 40, { isStatic: true });
-  ice_lever = Bodies.rectangle(ice_x + 3280, ice_y + 9320, 4600, 40);
-  ice_chain = Bodies.rectangle(ice_x + 5920, ice_y + 9780, 120, 1400);
-  ice_lever_weight = Bodies.circle(ice_x + 5920, ice_y + 10500, 300);
+  ice_lever = Bodies.rectangle(ice_x + 3280, ice_y + 9470, 4600, 40);
+  ice_chain = Bodies.rectangle(ice_x + 5920, ice_y + 9930, 120, 1400);
+  ice_lever_weight = Bodies.circle(ice_x + 5920, ice_y + 9250, 300);
   ice_chain_top_constraint = Constraint.create({
     bodyA: ice_lever,
     bodyB: ice_chain,
@@ -991,7 +606,8 @@ function iceSetup() {
   ice_launching_station = Bodies.rectangle(ice_x + 15300, ice_y + 15785, 800, 1800, { isStatic: true });
 
   // adding all bodies into one array and adding them into the world
-  ice_all_bodies = [ice_starting_rectangle, second_ice_starting_rectangle, ice_main_body, ice_starting_raised_rectangle, ice_starting_flag, ice_curve, second_ice_flag, ice_plinko_pegs, ice_landing_rectangle,
+  // removed ice_main_body
+  ice_all_bodies = [ice_starting_rectangle, second_ice_starting_rectangle, ice_starting_raised_rectangle, ice_starting_flag, ice_curve, second_ice_flag, ice_plinko_pegs, ice_landing_rectangle,
     third_ice_flag, ice_plinko_ball_cover, ice_plinko_ball_left_wall, ice_plinko_ball_right_wall, ice_plinko_ball_door, ice_plinko_left_boundary, ice_plinko_right_boundary, ice_slant_one, ice_slant_two,
     ice_slant_three, ice_slant_four, ice_spin_left_vertical, ice_spin_left_horizontal, ice_spin_right_vertical, ice_spin_right_horizontal, ice_basket_left_wall, ice_basket_right_wall, ice_basket_bottom,
     ice_lever, ice_chain, ice_lever_weight, ice_chain_top_constraint, ice_chain_bottom_constraint, ice_lever_constraint, fourth_ice_flag, fifth_ice_flag, ice_wind_generator, ice_final_ramp, ice_launching_flat,
@@ -1011,199 +627,8 @@ function iceSetup() {
 
 // SPACE
 
-function spaceSetup() {
 
-  // xx, yy, sides, radius?
 
-  space_rocketBody = Bodies.rectangle(
-    space_startingX + 350,
-    space_startingY + 0,
-    150,
-    60
-  );
-  space_rocketBody.mass = 9;
-  space_rocketImg = loadImage("./resources/rocket-ship-image.png");
-  space_mainBody = space_rocketBody;
-
-  World.add(engine.world, space_rocketBody);
-
-  space_orangePlanetImg = loadImage("./resources/greyPlanet.png");
-
-  space_greyPlanetImg = loadImage("./resources/greyPlanet.png");
-  space_greyPlanet = Bodies.circle(
-    space_startingX + 1700,
-    space_startingY + 750,
-    150
-  );
-  space_greyPlanet.mass = 250;
-  space_greyPlanet.isStatic = true;
-
-  space_bluePlanetImg = loadImage("./resources/bluePlanet.png");
-  space_bluePlanet = Bodies.circle(
-    space_startingX + 3200,
-    space_startingY - 550,
-    256
-  );
-  space_bluePlanet.mass = 500;
-  space_bluePlanet.isStatic = true;
-
-  space_redPlanetImg = loadImage("./resources/redPlanet.png");
-  space_redPlanet = Bodies.circle(
-    space_startingX + 5700,
-    space_startingY + 750,
-    256
-  );
-  space_redPlanet.mass = 750;
-  space_redPlanet.isStatic = true;
-
-  space_brownPlanetImg = loadImage("./resources/brownPlanet.png");
-  space_brownPlanet = Bodies.circle(
-    space_startingX + 9300,
-    space_startingY - 550,
-    300
-  );
-  space_brownPlanet.mass = 1000;
-  space_brownPlanet.isStatic = true;
-
-  space_orangePlanetImg = loadImage("./resources/orangePlanet.png");
-  space_orangePlanet = Bodies.circle(
-    space_startingX + 13800,
-    space_startingY + 750,
-    400
-  );
-  space_orangePlanet.mass = 1250;
-  space_orangePlanet.isStatic = true;
-  // add all of the bodies to the world
-  World.add(engine.world, [
-    space_greyPlanet,
-    space_bluePlanet,
-    space_redPlanet,
-    space_brownPlanet,
-    space_orangePlanet,
-  ]);
-  space_allObjects.push(
-    space_greyPlanet,
-    space_bluePlanet,
-    space_redPlanet,
-    space_brownPlanet,
-    space_orangePlanet
-  );
-
-  // sun
-  space_sun = Bodies.circle(
-    space_startingX + 20000,
-    space_startingY + 1500,
-    709
-  );
-  space_sunImg = loadImage("./resources/sun.png");
-  space_sun.isStatic = true;
-  space_sun.restitution = 1;
-  World.add(engine.world, space_sun);
-  space_allObjects.push(space_sun);
-
-  space_gravityObjects.push(space_rocketBody);
-  space_gravityObjects.push(space_greyPlanet);
-  // plinko
-  world = engine.world;
-
-  // randomly adds plinko to the screen (asteroids)
-  for (let x = 0; x < 100; x += 1) {
-    xVal = Math.floor(Math.random() * 6000) + 15000 + space_startingX;
-    yVal = -Math.floor(Math.random() * 1000) - 1000 + space_startingY;
-    plinko = new Plinko(xVal, yVal, Math.random() * 40 + 10, 127, engine.world);
-    space_plinkos.push(plinko);
-    space_allObjects.push(plinko);
-  }
-
-  //  black hole
-  let blackHoleX = 16500 + 1500 + space_startingX;
-  let blackHoleY = -7500 + space_startingY;
-  space_blackHole = Bodies.circle(blackHoleX, blackHoleY, 200);
-  space_blackHole.mass = 500;
-  space_blackHole.restitution = 0;
-  space_blackHole.isStatic = true;
-  space_blackHoleImg = loadImage("./resources/blackHole.png");
-  //World.add(engine.world, blackHole);
-
-  space_ball = [];
-  space_preMadeBody(blackHoleX, blackHoleY, 50, 0, 0, 0);
-  space_preMadeBody(blackHoleX - 300, blackHoleY, 5, 0, 0, 6);
-  space_preMadeBody(blackHoleX, blackHoleY + 250, 5, 0, 6, 0);
-  space_preMadeBody(blackHoleX + 200, blackHoleY, 5, 0, 0, -6);
-  space_preMadeBody(blackHoleX, blackHoleY - 300, 5, 0, -6, 0);
-  // vacuum
-  space_topBound = Bodies.rectangle(
-    16500 + 1500 + 10000 + space_startingX,
-    -2250 - 1000 + space_startingY,
-    10000,
-    15
-  );
-  space_topBound.restitution = 1;
-  space_topBound.isStatic = true;
-  space_bottomBound = Bodies.rectangle(
-    16500 + 1500 + 10000 + space_startingX,
-    -2250 + 1000 + space_startingY,
-    10000,
-    15
-  );
-  space_bottomBound.restitution = 1;
-  space_bottomBound.isStatic = true;
-  space_bottomBound.mass = 400;
-  World.add(engine.world, [space_topBound, space_bottomBound]);
-
-  //ending sequence
-  for (let i = 0; i < 1; i += 1) {
-    space_ragdollCharacter = space_createRagdoll(
-      blackHoleX - screen.availWidth / 2 - 75,
-      blackHoleY,
-      1.3
-    );
-    Composite.add(space_ragdolls, space_ragdollCharacter);
-  }
-
-  space_endSlide = Bodies.rectangle(blackHoleX, blackHoleY, 960, 720);
-
-  // create the bounds
-  let leftX = blackHoleX - screen.availWidth / 2;
-  let rightX = blackHoleX + screen.availWidth / 2;
-  let topY = blackHoleY - screen.availHeight / 2;
-  let bottomY = blackHoleY + screen.availHeight / 2;
-
-  space_topRect = Bodies.rectangle(
-    (leftX + rightX) / 2,
-    topY,
-    screen.availWidth,
-    50
-  );
-  space_topRect.isStatic = true;
-  space_bottomRect = Bodies.rectangle(
-    (leftX + rightX) / 2,
-    bottomY,
-    screen.availWidth,
-    50
-  );
-  space_bottomRect.isStatic = true;
-  space_leftRect = Bodies.rectangle(
-    leftX,
-    (topY + bottomY) / 2,
-    50,
-    screen.availHeight
-  );
-  space_leftRect.isStatic = true;
-  space_rightRect = Bodies.rectangle(
-    rightX,
-    (topY + bottomY) / 2,
-    50,
-    screen.availHeight
-  );
-  space_rightRect.isStatic = true;
-  World.add(engine.world, [
-    space_topRect,
-    space_bottomRect,
-    space_leftRect,
-    space_rightRect,
-  ]);
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1222,8 +647,110 @@ function spaceSetup() {
 
 // RAINFOREST
 
+rainforest_conditions.push(
+  new RainforestConditions(
+    () => {
+      return Matter.SAT.collides(rainforest_ball.body, rainforest_car.bodies[0]).collided;
+    },
+    () => {
+      console.log("ADDED CONSTRAINT")
 
+      if (!rainforest_constrainOnce) {
+        rainforest_constrainOnce = true
+        let options = {
+          bodyA: rainforest_car.bodies[0],
+          bodyB: rainforest_ball.body,
+          length: 50,
+          stiffness: 1
+        }
+        rainforest_carBallConstraint = Constraint.create(options)
+        World.add(world, rainforest_carBallConstraint)
+        rainforest_startEngine = true;
 
+        // Body.applyForce(car.bodies[0], car.bodies[0].position, {x: 3.2, y: 0.0})
+
+      }
+
+    }
+  )
+)
+
+rainforest_conditions.push(
+  new RainforestConditions(
+    () => {
+      return Matter.SAT.collides(rainforest_car.bodies[1], rainforest_ramp).collided;
+    },
+    () => {
+      console.log("ADDED CONSTRAINT")
+      rainforest_rampRemoved = true
+      rainforest_startEngine = false
+      rainforest_startRotation = true
+      World.remove(world, rainforest_ramp)
+
+    }
+  )
+)
+
+rainforest_conditions.push(
+  new RainforestConditions(
+    () => {
+      return Matter.SAT.collides(rainforest_car.bodies[0], rainforest_drop).collided;
+    },
+    () => {
+      console.log("touched the drop")
+      rainforest_startRotation = true
+    }
+  )
+)
+
+rainforest_conditions.push(
+  new RainforestConditions(
+    () => {
+      return Matter.SAT.collides(rainforest_car.bodies[1], rainforest_ground2).collided;
+    },
+    () => {
+      console.log("ADDED CONSTRAINT")
+      // startEngine = true                
+    }
+  )
+)
+
+rainforest_conditions.push(
+  new RainforestConditions(
+    () => {
+      return Matter.SAT.collides(rainforest_car.bodies[1], rainforest_trigger).collided;
+    },
+    () => {
+      console.log("ADDED CONSTRAINT2")
+
+      World.remove(world, rainforest_trigger)
+      rainforest_showTrigger = false;
+      rainforest_startEngine = false;
+      // Body.applyForce(rainforest_car.bodies[1], rainforest_car.bodies[1].position, {x: 0, y: 0.5})
+    }
+  )
+)
+
+rainforest_conditions.push(
+  new RainforestConditions(
+    () => {
+      return Matter.SAT.collides(rainforest_finalBall, rainforest_pendulumBall).collided;
+    },
+    () => {
+      console.log("ADDED CONSTRAINT2")
+
+      Body.applyForce(rainforest_finalBall, rainforest_finalBall.position, { x: 35, y: 0 });
+      iceCamera = rainforest_cam;
+      currentStage = "ice";
+      iceMoveCamera(ice_x + 4500, ice_y + 2900, 0);
+      ICE_MOVE_CAMERA(500, 0, 0, iceCameraPanningSpeed);
+      iceCameraX = iceCamera.centerX;
+      iceCameraY = iceCamera.centerY;
+      iceCameraZ = iceCamera.centerZ;
+      ice_main_body = rainforest_finalBall;
+    }
+  )
+)
 
 
 // ICE
@@ -1306,7 +833,7 @@ ice_conditions.push(
     () => {
       for (var i = 0; i < ice_plinko_balls.length; i++) {
         var position = ice_plinko_balls[i].body.position;
-        if (position.x > ice_x - 500 && position.y > 11500 && position.y < 12300) {
+        if (position.x > ice_x - 500 && position.y > ice_y + 11500 && position.y < ice_y + 12300) {
           Body.applyForce(ice_plinko_balls[i].body, { x: position.x, y: position.y }, { x: 0.1, y: 0 })
         }
       }
@@ -1342,17 +869,9 @@ ice_conditions.push(
     },
     () => {
       currentStage = "space";
-      cam = iceCamera;
-      engine.world.gravity.y = 0;
-      // World.remove(world, ice_all_bodies);
-      // World.clear(world);
-      // Engine.clear(engine);
-      // spaceSetup();
     }
   )
 );
-
-
 
 // END OF ICE CONDITIONS CODE
 
@@ -1360,249 +879,6 @@ ice_conditions.push(
 
 
 // SPACE
-
-/* ----Conditions----------------------------------------------------*/
-// pass the first planet
-space_conditions.push(
-  new space_Conditions(
-    () => {
-      return space_rocketBody.position.x > space_greyPlanet.position.x - 50;
-    },
-    () => {
-      Body.setVelocity(space_rocketBody, {
-        x: 15,
-        y: 0,
-      });
-      gravity();
-    },
-    () => {
-      space_gravityObjects = [];
-      space_gravityObjects.push(
-        space_rocketBody,
-        space_greyPlanet,
-        space_bluePlanet
-      );
-    }
-  )
-);
-// pass the second planet
-space_conditions.push(
-  new space_Conditions(
-    () => {
-      return space_rocketBody.position.x > space_bluePlanet.position.x - 50;
-    },
-    () => {
-      Body.setVelocity(space_rocketBody, {
-        x: 15,
-        y: 0,
-      });
-      gravity();
-    },
-    () => {
-      space_gravityObjects = [];
-      space_gravityObjects.push(
-        space_rocketBody,
-        space_bluePlanet,
-        space_redPlanet
-      );
-    }
-  )
-);
-// pass the third planet
-space_conditions.push(
-  new space_Conditions(
-    () => {
-      return space_rocketBody.position.x > space_redPlanet.position.x - 50;
-    },
-    () => {
-      Body.setVelocity(space_rocketBody, {
-        x: 15,
-        y: 0,
-      });
-      gravity();
-    },
-    () => {
-      space_gravityObjects = [];
-      space_gravityObjects.push(
-        space_rocketBody,
-        space_redPlanet,
-        space_brownPlanet
-      );
-    }
-  )
-);
-// pass the fourth planet
-space_conditions.push(
-  new space_Conditions(
-    () => {
-      return space_rocketBody.position.x > space_brownPlanet.position.x - 50;
-    },
-    () => {
-      Body.setVelocity(space_rocketBody, {
-        x: 15,
-        y: 0,
-      });
-      gravity();
-    },
-    () => {
-      space_gravityObjects = [];
-      space_gravityObjects.push(
-        space_rocketBody,
-        space_brownPlanet,
-        space_orangePlanet
-      );
-    }
-  )
-);
-// pass the fifth planet
-space_conditions.push(
-  new space_Conditions(
-    () => {
-      return space_rocketBody.position.x > space_orangePlanet.position.x - 50;
-    },
-    () => {
-      Body.setVelocity(space_rocketBody, {
-        x: 15,
-        y: 0,
-      });
-      gravity();
-    },
-    () => {
-      space_gravityObjects = [];
-      space_gravityObjects.push(
-        space_rocketBody,
-        space_orangePlanet,
-        space_sun
-      );
-    }
-  )
-);
-// collides with the sun
-space_conditions.push(
-  new space_Conditions(
-    () => {
-      return Matter.SAT.collides(space_rocketBody, space_sun).collided;
-    },
-    () => {
-      Body.setVelocity(space_rocketBody, {
-        x: 15,
-        y: 0,
-      });
-      gravity();
-    },
-    () => {
-      space_gravityObjects = [];
-      space_rocketBody.mass = 0.07347;
-      space_gravityObjects.push(space_rocketBody, space_blackHole);
-    }
-  )
-);
-// within striking distance of the black hole
-space_conditions.push(
-  new space_Conditions(
-    () => {
-      return (
-        Math.abs(space_rocketBody.position.y - space_blackHole.position.y) < 500
-      );
-    },
-    () => {
-      gravity();
-    },
-    () => {
-      ball = [];
-      space_orbitProperties.gravityAddition = 0.00001;
-      space_gravityObjects = [];
-      space_mainBody = space_blackHole;
-      space_rocketBody = space_ball[1];
-    }
-  )
-);
-// if it actually collides with the black hole
-space_conditions.push(
-  new space_Conditions(
-    () => {
-      let xD = space_rocketBody.position.x - space_blackHole.position.x;
-      let yD = space_rocketBody.position.y - space_blackHole.position.y;
-      let tD = Math.sqrt(xD * xD + yD * yD);
-      return tD < 100;
-    },
-    () => {
-      // let xD = rocketBody.position.x - blackHole.position.x;
-      // let yD = rocketBody.position.y - blackHole.position.y;
-      // let tD = Math.sqrt(xD * xD + yD * yD);
-      // console.log(tD);
-    },
-    () => {
-      console.log("Collision");
-      space_rocketBody.mass = 100;
-      // rocketBody.isStatic = true;
-      space_followingMainBody = false;
-      space_gravityObjects.push(space_rocketBody);
-      space_blackHoleImg = null;
-    }
-  )
-);
-// switches from the black hole craziness to the end sequence
-space_conditions.push(
-  new space_Conditions(
-    () => {
-      // when there is 100 balls collided
-      return space_blackHoleObjects.length > 100;
-    },
-    () => {
-      // randomly add balls to the screen and get them into the gravty component
-      let leftX = space_rocketBody.position.x - screen.availWidth / 2;
-      let topY = space_rocketBody.position.y - screen.availHeight / 2;
-      let randomX = Math.random() * screen.availWidth + leftX;
-      let randomY = Math.random() * screen.availHeight + topY;
-
-      let random = Math.random();
-      let b;
-      if (random < 0.2) {
-        b = Bodies.circle(randomX, randomY, Math.random() * 50 + 10);
-        space_smallAsteroids.push(b);
-      } else if (random < 0.4) {
-        b = Bodies.circle(randomX, randomY, Math.random() * 50 + 10);
-        space_smallReds.push(b);
-      } else if (random < 0.6) {
-        b = Bodies.circle(randomX, randomY, Math.random() * 50 + 10);
-        space_smallOranges.push(b);
-      } else if (random < 0.8) {
-        b = Bodies.circle(randomX, randomY, Math.random() * 50 + 10);
-        space_smallBlues.push(b);
-      } else {
-        b = Bodies.circle(randomX, randomY, Math.random() * 50 + 10);
-        space_smallBrowns.push(b);
-      }
-      World.add(engine.world, b);
-      space_blackHoleObjects.push(b);
-      space_gravityObjects.push(b);
-
-      Body.setAngularVelocity(space_rocketBody, Math.PI / 6);
-      // run the gravity function
-      gravity();
-    },
-    () => {
-      // explode all of the balls outward
-      space_gravityObjects = [];
-      blackHoleObject = [];
-      space_smallAsteroids = [];
-      space_smallBlues = [];
-      space_smallBrowns = [];
-      space_smallReds = [];
-      space_smallOranges = [];
-      space_blackHoleObjects.forEach((element) => {
-        element.isStatic = true;
-      });
-      World.clear(engine.world);
-      World.add(engine.world, [space_ragdolls]);
-      space_showingEndingSequence = true;
-      space_rocketBody.position.x = space_rocketBody.position.x - 50000;
-      space_rocketBody.position.y = space_rocketBody.position.y - 50000;
-    }
-  )
-);
-
 
 
 
@@ -1625,7 +901,80 @@ space_conditions.push(
 
 // RAINFOREST
 
+function rainforestDraw() {
+  background(51);
 
+  if (rainforest_conditions.length > 0) {
+    for (var i = rainforest_conditions.length - 1; i >= 0; i--) {
+      rainforest_condition = rainforest_conditions[i];
+      if (rainforest_condition.check()) {
+        console.log("THEY HIT")
+        console.log(i)
+        rainforest_condition.onceDone();
+        rainforest_conditions.splice(i, 1);
+      }
+    }
+  }
+  // Engine.update(engine);
+  for (let rainforest_box of rainforest_boxes) {
+    rainforest_box.show();
+  }
+  rainforest_ball.show()
+  drawBody(rainforest_finalBall)
+  for (let rainforest_circle of rainforest_circles) {
+    rainforest_circle.show()
+  }
+  rainforest_pirateImg.resize(300, 150)
+
+
+  // drawBody(ice_curve)
+  // drawBody(ice_curve2)
+  drawBody(rainforest_ground3)
+  drawBody(rainforest_pendulumBall)
+
+
+  fill(0, 153, 255)
+  drawSprite(rainforest_car.bodies[0], rainforest_pirateImg)
+  // drawBodies(car.bodies)
+  drawBody(rainforest_ground)
+  drawBody(rainforest_ground2)
+  if (rainforest_showTrigger) {
+    drawBody(rainforest_trigger)
+
+  }
+
+  if (!rainforest_rampRemoved) {
+    drawBody(rainforest_ramp)
+  }
+
+  drawBody(rainforest_drop)
+
+  if (rainforest_engine2) {
+    Body.setVelocity(car.bodies[2], rainforest_rotationNum)
+  }
+
+  if (rainforest_startEngine) {
+    console.log("ENGINE STARTING")
+    Body.setVelocity(rainforest_car.bodies[0], { x: 5, y: 0 })
+  }
+
+  if (rainforest_startRotation) {
+    Body.setAngularVelocity(rainforest_car.bodies[1], rainforest_rotationNum)
+  }
+
+  if (rainforest_showTrigger) {
+    rainforest_moveCam(rainforest_ball)
+  } else {
+    rainforest_diffMoveCam(rainforest_x + 5500, rainforest_y + 4200, 1000)
+  }
+
+  for (let i = 0; i < rainforest_hills.length; i++) {
+    drawBody(rainforest_hills[i])
+  }
+
+  stroke(255)
+  line(rainforest_x + 6300, rainforest_y + 4100, rainforest_pendulumBall.position.x, rainforest_pendulumBall.position.y)
+}
 
 
 // ICE
@@ -1646,7 +995,7 @@ function iceDraw() {
           iceSoundPlaying = false;
         }
       }).catch(error => {
-        console.log(error)
+        console.log(error);
       });
     }
   }
@@ -1864,13 +1213,13 @@ function iceDraw() {
   drawBody(ice_main_body);
 
   // starts the process after about 3 seconds
-  if (iceFirstTime && frameCount >= 180) {
-    let x = ice_starting_dominoes[0].body.position.x;
-    let y = ice_starting_dominoes[0].body.position.y;
-    Body.applyForce(ice_main_body, { x: ice_main_body.position.x, y: ice_main_body.position.y }, { x: 35, y: 0 });
-    iceFirstTime = false;
-    ICE_MOVE_CAMERA(500, 0, 0, iceCameraPanningSpeed);
-  }
+  // if (iceFirstTime && frameCount >= 180) {
+  //   let x = ice_starting_dominoes[0].body.position.x;
+  //   let y = ice_starting_dominoes[0].body.position.y;
+  //   Body.applyForce(ice_main_body, { x: ice_main_body.position.x, y: ice_main_body.position.y }, { x: 35, y: 0 });
+  //   iceFirstTime = false;
+  //   ICE_MOVE_CAMERA(500, 0, 0, iceCameraPanningSpeed);
+  // }
 
   // END OF ICE BIOME DRAW CODE
 
@@ -1879,94 +1228,7 @@ function iceDraw() {
 
 // SPACE
 
-function spaceDraw() {
-  if (space_followingMainBody) {
-    space_moveWithMainBody(space_mainBody);
-  }
 
-  if (space_conditions.length > 0) {
-    if (space_conditions[0].check()) {
-      space_conditions[0].onceDone();
-      space_conditions.shift();
-    } else {
-      space_conditions[0].notDone();
-    }
-  }
-  clear();
-  //background(bg);
-  fill(128);
-  drawSprite(space_greyPlanet, space_greyPlanetImg);
-  drawSprite(space_bluePlanet, space_bluePlanetImg);
-  drawSprite(space_redPlanet, space_redPlanetImg);
-  drawSprite(space_brownPlanet, space_brownPlanetImg);
-  drawSprite(space_orangePlanet, space_orangePlanetImg);
-  drawSprite(space_sun, space_sunImg);
-
-  drawSprite(space_rocketBody, space_rocketImg);
-
-  space_ball[0].isStatic = true;
-  if (space_blackHoleImg != null) {
-    drawSprite(space_ball[0], space_blackHoleImg);
-  }
-  for (let i = 1; i < space_ball.length; i++) {
-    drawBody(space_ball[i]);
-  }
-  space_circularOrbit();
-  space_orbitProperties.gravity += space_orbitProperties.gravityAddition;
-  // vacuum
-  if (space_topBound != null) {
-    drawBody(space_topBound);
-  }
-  if (space_bottomBound != null) {
-    drawBody(space_bottomBound);
-  }
-  if (space_rightBound != null) {
-    drawBody(space_rightBound);
-  }
-  if (space_leftBound != null) {
-    drawBody(space_leftBound);
-  }
-
-  for (let i = 0; i < space_particles.length; i++) {
-    space_particles[i].show();
-    if (space_particles[i].isOffScreen()) {
-      World.remove(world, space_particles[i].body);
-      space_particles.splice(i, 1);
-      i--;
-    }
-  }
-  for (let i = 0; i < space_plinkos.length; i++) {
-    space_plinkos[i].show();
-  }
-  for (let i = 0; i < space_bounds.length; i++) {
-    space_bounds[i].show();
-  }
-
-  space_smallAsteroids.forEach((element) => {
-    drawSprite(element, space_smallAsteroid);
-  });
-  space_smallBlues.forEach((element) => {
-    drawSprite(element, space_smallBlue);
-  });
-  space_smallBrowns.forEach((element) => {
-    drawSprite(element, space_smallBrown);
-  });
-  space_smallReds.forEach((element) => {
-    drawSprite(element, space_smallRed);
-  });
-  space_smallOranges.forEach((element) => {
-    drawSprite(element, space_smallOrange);
-  });
-
-  if (space_showingEndingSequence) {
-    Body.setAngularVelocity(space_ragdollCharacter.bodies[0], Math.PI / 125);
-    Body.setVelocity(space_ragdollCharacter.bodies[0], { x: 0.9, y: 0 });
-    fill(255, 255, 255);
-    drawBodies(space_ragdollCharacter.bodies);
-    drawSprite(space_endSlide, space_endSlideImg);
-  }
-
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1978,17 +1240,17 @@ function spaceDraw() {
 // MAIN FUNCTIONS
 
 function setup() {
-  canvas = createCanvas(screen.availWidth, screen.availHeight, WEBGL);
+  canvas = createCanvas(window.innerWidth, window.innerHeight, WEBGL);
+  rainforestSetup();
   iceSetup();
-  spaceSetup();
   Engine.run(engine);
 }
 
 function draw() {
-  if (currentStage == "ice") {
+  if (currentStage == "rainforest") {
+    rainforestDraw();
+  } else if (currentStage == "ice") {
     iceDraw();
-  } else {
-    spaceDraw();
   }
 }
 
