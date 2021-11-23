@@ -63,51 +63,53 @@ let rainforest_engine2 = false;
 let rainforest_pirateImg;
 let rainforest_hills = []
 
-let rainforest_x = 200
+let rainforest_x = 0
 let rainforest_y = 0
 
 var rainforest_conditions = [];
 
-class Conditions {
+function setup(){
+    rainforest_setup()
+}
+
+function draw(){
+    rainforest_draw()
+}
+
+function preload(){
+    rainforest_preload()
+}
+
+class RainforestConditions {
     constructor(checkFunction, onceDoneFunction) {
         this.check = checkFunction;
         this.onceDone = onceDoneFunction;
     }
 }
 
-function randomNumber(lowerBound, upperBound) {
+function rainforest_randomNumber(lowerBound, upperBound) {
     return Math.floor((Math.random() * upperBound) + lowerBound);
 }
 
-function preload(){
+function rainforest_preload(){
     rainforest_pirateImg = loadImage("./components/rainforest/pirateship.png")
 }
 
-function setup() {
+function rainforest_setup() {
     canvas = createCanvas(screen.availWidth, screen.availHeight - 110, WEBGL);
     engine = Engine.create();
     world = engine.world;
     cam = createCamera()
     let pi = Math.PI
-    // conditions.push(
-    //     new Conditions(
-    //         () => {
-    //             return ball.body.position.y >= 326;
-    //         },
-    //         () => {
-    //             Body.applyForce(ball.body, ball.body.position, { x: 0, y: 0.0 });
-    //         }
-    //     )
-    // );
 
     rainforest_ramp = Bodies.rectangle(rainforest_x + 1020, rainforest_y + 407, 600, 100, {isStatic: true})
     World.add(world, rainforest_ramp)
 
-    rainforest_ball = new Ball(rainforest_x + -600, rainforest_y + 200, 30)
-    rainforest_finalBall = Bodies.circle(rainforest_x + 6450, rainforest_y + 4500, 30)
+    rainforest_ball = new Ball(rainforest_x + -600, rainforest_y - 200, 30)
+    rainforest_finalBall = Bodies.circle(rainforest_x + 6450, rainforest_y + 4500, 40, { density: 0.11 });
     // finalBall = new Ball(5000, 4000, 30, {isStatic: true})
     World.add(world, rainforest_finalBall)
-    rainforest_ground = Bodies.rectangle(rainforest_x + 0, height / 2 + 40, width, 100, { isStatic: true })
+    rainforest_ground = Bodies.rectangle(rainforest_x + 0, rainforest_y + 407, width, 100, { isStatic: true })
     World.add(world, rainforest_ground)
 
     rainforest_ground2 = Bodies.rectangle(rainforest_x + 2500, rainforest_y + 2500, 5500, 100, { isStatic: true })
@@ -171,14 +173,14 @@ function setup() {
     World.add(world, rainforest_drop)
 
 
-    rainforest_car = Composites.car(rainforest_x + -600, rainforest_y + 300, 200, 40, 40);
+    rainforest_car = Composites.car(rainforest_x + -600, rainforest_y - 100, 200, 40, 40);
     World.add(world, rainforest_car)
 
     rainforest_trigger = Bodies.rectangle(rainforest_x + 5350, rainforest_y + 2500, 200, 100, {isStatic: true})
     World.add(world, rainforest_trigger)
 
 
-    let ice_curve_vertices = []
+    let rainforest_wave_vertices = []
 
     let num = 30
     let change = (2 * pi) / num
@@ -189,16 +191,16 @@ function setup() {
 
         console.log(200 * x, -1000 * y)
 
-        ice_curve_vertices.push({ x: 200 * x, y: -400 * y })
+        rainforest_wave_vertices.push({ x: 200 * x, y: -400 * y })
     }
 
-    console.log(ice_curve_vertices)
+    console.log(rainforest_wave_vertices)
 
-    // ice_curve = Bodies.fromVertices(2500, 2375, ice_curve_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]);
+    // ice_curve = Bodies.fromVertices(2500, 2375, rainforest_wave_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]);
 
-    // ice_curve2 = Bodies.fromVertices(3200, 2375, ice_curve_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]);
+    // ice_curve2 = Bodies.fromVertices(3200, 2375, rainforest_wave_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]);
 
-    rainforest_hills.push(Bodies.fromVertices(rainforest_x + 3000, rainforest_y + 2200, ice_curve_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]), Bodies.fromVertices(rainforest_x + 4300, rainforest_y + 2200, ice_curve_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]), Bodies.fromVertices(rainforest_x + 1800, rainforest_y + 2200, ice_curve_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]))
+    rainforest_hills.push(Bodies.fromVertices(rainforest_x + 3000, rainforest_y + 2200, rainforest_wave_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]), Bodies.fromVertices(rainforest_x + 4300, rainforest_y + 2200, rainforest_wave_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]), Bodies.fromVertices(rainforest_x + 1800, rainforest_y + 2200, rainforest_wave_vertices, { isStatic: true, friction: 0 }, [flagInternal = false], [removeCollinear = 0.01], [minimumArea = 10], [removeDuplicatePoints = 0.01]))
 
     World.add(world, rainforest_hills)
 
@@ -212,7 +214,7 @@ function setup() {
 
 
     rainforest_conditions.push(
-        new Conditions(
+        new RainforestConditions(
             () => {
                 return Matter.SAT.collides(rainforest_ball.body, rainforest_car.bodies[0]).collided;
             },
@@ -240,7 +242,7 @@ function setup() {
     )
 
     rainforest_conditions.push(
-        new Conditions(
+        new RainforestConditions(
             () => {
                 return Matter.SAT.collides(rainforest_car.bodies[1], rainforest_ramp).collided;
             },
@@ -256,7 +258,7 @@ function setup() {
     )
 
     rainforest_conditions.push(
-        new Conditions(
+        new RainforestConditions(
             () => {
                 return Matter.SAT.collides(rainforest_car.bodies[0], rainforest_drop).collided;
             },
@@ -268,7 +270,7 @@ function setup() {
     )
 
     rainforest_conditions.push(
-        new Conditions(
+        new RainforestConditions(
             () => {
                 return Matter.SAT.collides(rainforest_car.bodies[1], rainforest_ground2).collided;
             },
@@ -280,7 +282,7 @@ function setup() {
     )
 
     rainforest_conditions.push(
-        new Conditions(
+        new RainforestConditions(
             () => {
                 return Matter.SAT.collides(rainforest_car.bodies[1], rainforest_trigger).collided;
             },
@@ -290,21 +292,20 @@ function setup() {
                 World.remove(world, rainforest_trigger)
                 rainforest_showTrigger = false;
                 rainforest_startEngine = false;
-                rainforest_rotationNum = Math.PI
-                Body.applyForce(rainforest_car.bodies[1], rainforest_car.bodies[1].position, {x: 0, y: 0.5})
+                // Body.applyForce(rainforest_car.bodies[1], rainforest_car.bodies[1].position, {x: 0, y: 0.5})
             }
         )
     )
 
     rainforest_conditions.push(
-        new Conditions(
+        new RainforestConditions(
             () => {
                 return Matter.SAT.collides(rainforest_finalBall, rainforest_pendulumBall).collided;
             },
             () => {
                 console.log("ADDED CONSTRAINT2")
     
-                Body.applyForce(rainforest_finalBall, rainforest_finalBall.position, {x: 0.2, y: 0})
+                Body.applyForce(rainforest_finalBall, rainforest_finalBall.position, {x: 35, y: 0})
             }
         )
     )
@@ -312,15 +313,15 @@ function setup() {
 
 
 
-function moveCam(mainBody) {
-    cam.setPosition(mainBody.body.position.x + 200, mainBody.body.position.y - 100, 500)
+function rainforest_moveCam(mainBody) {
+    cam.setPosition(mainBody.body.position.x + 200, mainBody.body.position.y - 100, 4000)
 }
 
-function diffMoveCam(x, y, zoom){
+function rainforest_diffMoveCam(x, y, zoom){
     cam.setPosition(x, y, zoom)
 }
 
-function draw() {
+function rainforest_draw() {
     background(51);
 
     if (rainforest_conditions.length > 0) {
@@ -374,7 +375,7 @@ function draw() {
 
     if(rainforest_startEngine){
         console.log("ENGINE STARTING")
-        Body.setVelocity(rainforest_car.bodies[0], {x: 5, y: 0})
+        Body.setVelocity(rainforest_car.bodies[0], {x: 45, y: 0})
     }
 
     if(rainforest_startRotation){
@@ -382,9 +383,9 @@ function draw() {
     }
 
     if(rainforest_showTrigger){
-        moveCam(rainforest_ball)
+        rainforest_moveCam(rainforest_ball)
     }else{
-        diffMoveCam(rainforest_x + 5500, rainforest_y + 4200, 1000)
+        rainforest_diffMoveCam(rainforest_x + 5500, rainforest_y + 4200, 1000)
     }
 
     for(let i = 0; i < rainforest_hills.length; i++){
@@ -395,6 +396,6 @@ function draw() {
     line(rainforest_x + 6300, rainforest_y + 4100, rainforest_pendulumBall.position.x, rainforest_pendulumBall.position.y)
 
 
-    // moveCam(ball)
+    // moveCam(rainforest_ball)
 
 }
