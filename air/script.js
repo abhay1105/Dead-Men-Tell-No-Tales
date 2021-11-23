@@ -10,12 +10,13 @@ const Bodies = Matter.Bodies;
 const Body = Matter.Body;
 const Mouse = Matter.Mouse;
 const MouseConstraint = Matter.MouseConstraint;
+const Constraint = Matter.Constraint;
 
 const drawMouse = Helpers.drawMouse;
 const drawBody = Helpers.drawBody;
 const drawSprite = Helpers.drawSprite;
 const drawBodies = Helpers.drawBodies;
-const drawConstraints = Helpers.drawConstraints;
+const drawConstraint = Helpers.drawConstraint;
 
 let engine;
 let circle;
@@ -61,15 +62,22 @@ function setup() {
   mouseConstraint.mouse.pixelRatio = pixelDensity();
   World.add(engine.world, mouseConstraint);
 
-  airCatchCloth = createCloth(300, 300, 10, 5, 5, 5, true, 8);
+  airCatchCloth = createCloth(100, 150, 5, 10, 5, 5, true, 5);
   airCatchConstraint1 = Constraint.create({
-    pointA: {x: 200, y: 300},
+    pointA: {x: 00, y: 100},
     bodyB:  airCatchCloth.bodies[0],
     stiffness: 1,
     length: 100,
   });
+  airCatchConstraint2 = Constraint.create({
+    pointA: {x: 250, y: 600},
+    bodyB:  airCatchCloth.bodies[49],
+    stiffness: 1,
+    length: 100,
+  })
 
   World.add(engine.world, airCatchCloth);
+  World.add(engine.world, [airCatchConstraint1, airCatchConstraint2]);
 
   // run the engine
   Engine.run(engine);
@@ -83,8 +91,13 @@ function draw() {
   drawBody(circle);
   drawMassCenter(circle);
 
+  fill(255);
   drawBodies(airCatchCloth.bodies);
-  drawConstraints(airCatchCloth.constraints);
+  airCatchCloth.constraints.forEach(element => {
+    drawConstraint(element);    
+  });
+
+  drawConstraint(airCatchConstraint1);
 
   fill(128);
   drawBody(ground);

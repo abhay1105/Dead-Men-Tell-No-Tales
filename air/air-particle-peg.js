@@ -6,7 +6,7 @@ class IceParticlePeg {
       }
       this.body = Bodies.circle(x, y, r, options);
       this.r = r;
-      this.img = loadImage("resources/bird.png");
+      this.img = loadImage("resources/cloud.png");
       World.add(world, this.body);
   }
   show() {
