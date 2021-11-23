@@ -7,18 +7,34 @@
     <title>Sketch</title>
 
     <link rel="stylesheet" type="text/css" href="style.css">
+
+    <!-- main imports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.17.1/matter.min.js"></script>
-    <script src="libraries/p5.min.js"></script>
-    <script src="libraries/p5.sound.min.js"></script>
-    <script language="javascript" type="text/javascript" src="./libraries/p5.js"></script>
-    <script language="javascript" type="text/javascript" src="./libraries/matter.js"></script>
-    <script language="javascript" type="text/javascript" src="./libraries/helpers.js"></script>
+    <script src="../libraries/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.11/addons/p5.dom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.11/addons/p5.sound.min.js"></script>
+    <script language="javascript" type="text/javascript" src="../libraries/matter.js"></script>
+    <script language="javascript" type="text/javascript" src="../libraries/helpers.js"></script>
+
+    <!-- ice component imports -->
+    <script language="javascript" type="text/javascript" src="./components/ice/ice-particle-plinko.js"></script>
+    <script language="javascript" type="text/javascript" src="./components/ice/ice-particle-peg.js"></script>
+    <script language="javascript" type="text/javascript" src="./components/ice/ice-domino.js"></script>
+    <script language="javascript" type="text/javascript" src="./components/ice/ice-flag.js"></script>
+    <script src="../libraries/poly-decomp.js" type="text/javascript"></script>
 
   </head>
 
   <body>
+
+    <!-- ice scripts -->
+    <audio src="./resources/jjkOP.mp3" id="jjkAudio"></audio>
+    <script src="./components/ice/ice-particle-plinko.js"></script>
+    <script src="./components/ice/ice-particle-peg.js"></script>
+    <script src="./components/ice/ice-domino.js"></script>
+    <script src="./components/ice/ice-flag.js"></script>
+
     <script src="sketch.js"></script>
 
-    <!-- ADD IN THE SCRIPTS YOU USE HERE YOU BUMS -->
   </body>
 </html>
