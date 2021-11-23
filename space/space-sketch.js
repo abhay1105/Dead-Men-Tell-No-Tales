@@ -18,6 +18,9 @@ let space_screenTop;
 let space_allObjects = [];
 let space_mainBody;
 let space_followingMainBody = true;
+let startingX = 100;
+let startingY = 50;
+let bg;
 /* ----Planets------------------------------------------------------*/
 let space_greyPlanet;
 let space_greyPlanetImg;
@@ -707,6 +710,7 @@ space_conditions.push(
       gravity();
     },
     () => {
+      ball = [];
       space_orbitProperties.gravityAddition = 0.00001;
       space_gravityObjects = [];
       space_mainBody = space_blackHole;
@@ -735,6 +739,7 @@ space_conditions.push(
       // rocketBody.isStatic = true;
       space_followingMainBody = false;
       space_gravityObjects.push(space_rocketBody);
+      space_blackHoleImg = null;
     }
   )
 );
@@ -806,10 +811,12 @@ function preload() {
   space_smallBlue = loadImage("blue-planet-small.png");
   space_smallRed = loadImage("small-red-planet.png");
   space_endSlideImg = loadImage("end slide.png");
+  bg = loadImage("space-background.jpg");
 }
 function setup() {
   createCanvas(screen.availWidth, screen.availHeight, WEBGL);
 
+  //createCanvas(509, 339, WEBGL);
   cam = createCamera();
   // create an engine
   //engine.world.gravity.x = 0.5;
@@ -818,7 +825,7 @@ function setup() {
   engine.world.gravity.y = 0;
   // xx, yy, sides, radius?
 
-  space_rocketBody = Bodies.rectangle(350, 0, 150, 60);
+  space_rocketBody = Bodies.rectangle(startingX + 350, startingY + 0, 150, 60);
   space_rocketBody.mass = 9;
   space_rocketImg = loadImage("rocket-ship-image.png");
   space_mainBody = space_rocketBody;
@@ -828,27 +835,27 @@ function setup() {
   space_orangePlanetImg = loadImage("greyPlanet.png");
 
   space_greyPlanetImg = loadImage("greyPlanet.png");
-  space_greyPlanet = Bodies.circle(1700, 750, 150);
+  space_greyPlanet = Bodies.circle(startingX + 1700, startingY + 750, 150);
   space_greyPlanet.mass = 250;
   space_greyPlanet.isStatic = true;
 
   space_bluePlanetImg = loadImage("bluePlanet.png");
-  space_bluePlanet = Bodies.circle(3200, -550, 256);
+  space_bluePlanet = Bodies.circle(startingX + 3200, startingY - 550, 256);
   space_bluePlanet.mass = 500;
   space_bluePlanet.isStatic = true;
 
   space_redPlanetImg = loadImage("redPlanet.png");
-  space_redPlanet = Bodies.circle(5700, 750, 256);
+  space_redPlanet = Bodies.circle(startingX + 5700, startingY + 750, 256);
   space_redPlanet.mass = 750;
   space_redPlanet.isStatic = true;
 
   space_brownPlanetImg = loadImage("brownPlanet.png");
-  space_brownPlanet = Bodies.circle(9300, -550, 300);
+  space_brownPlanet = Bodies.circle(startingX + 9300, startingY - 550, 300);
   space_brownPlanet.mass = 1000;
   space_brownPlanet.isStatic = true;
 
   space_orangePlanetImg = loadImage("orangePlanet.png");
-  space_orangePlanet = Bodies.circle(13800, 750, 400);
+  space_orangePlanet = Bodies.circle(startingX + 13800, startingY + 750, 400);
   space_orangePlanet.mass = 1250;
   space_orangePlanet.isStatic = true;
   // add all of the bodies to the world
@@ -868,7 +875,7 @@ function setup() {
   );
 
   // sun
-  space_sun = Bodies.circle(20000, 1500, 709);
+  space_sun = Bodies.circle(startingX + 20000, startingY + 1500, 709);
   space_sunImg = loadImage("sun.png");
   space_sun.isStatic = true;
   space_sun.restitution = 1;
@@ -882,16 +889,16 @@ function setup() {
 
   // randomly adds plinko to the screen (asteroids)
   for (let x = 0; x < 100; x += 1) {
-    xVal = Math.floor(Math.random() * 6000) + 15000;
-    yVal = -Math.floor(Math.random() * 1000) - 1000;
+    xVal = Math.floor(Math.random() * 6000) + 15000 + startingX;
+    yVal = -Math.floor(Math.random() * 1000) - 1000 + startingY;
     plinko = new Plinko(xVal, yVal, Math.random() * 40 + 10, 127, engine.world);
     space_plinkos.push(plinko);
     space_allObjects.push(plinko);
   }
 
   //  black hole
-  let blackHoleX = 16500 + 1500;
-  let blackHoleY = -7500;
+  let blackHoleX = 16500 + 1500 + startingX;
+  let blackHoleY = -7500 + startingY;
   space_blackHole = Bodies.circle(blackHoleX, blackHoleY, 200);
   space_blackHole.mass = 500;
   space_blackHole.restitution = 0;
@@ -907,16 +914,16 @@ function setup() {
   space_preMadeBody(blackHoleX, blackHoleY - 300, 5, 0, -6, 0);
   // vacuum
   space_topBound = Bodies.rectangle(
-    16500 + 1500 + 10000,
-    -2250 - 1000,
+    16500 + 1500 + 10000 + startingX,
+    -2250 - 1000 + startingY,
     10000,
     15
   );
   space_topBound.restitution = 1;
   space_topBound.isStatic = true;
   space_bottomBound = Bodies.rectangle(
-    16500 + 1500 + 10000,
-    -2250 + 1000,
+    16500 + 1500 + 10000 + startingX,
+    -2250 + 1000 + startingY,
     10000,
     15
   );
@@ -935,7 +942,7 @@ function setup() {
     Composite.add(space_ragdolls, space_ragdollCharacter);
   }
 
-  space_endSlide = Bodies.rectangle(blackHoleX + 350, blackHoleY, 960, 720);
+  space_endSlide = Bodies.rectangle(blackHoleX, blackHoleY, 960, 720);
 
   // create the bounds
   let leftX = blackHoleX - screen.availWidth / 2;
@@ -998,8 +1005,8 @@ function draw() {
       space_conditions[0].notDone();
     }
   }
-
-  background(0);
+  clear();
+  //background(bg);
   fill(128);
   drawSprite(space_greyPlanet, space_greyPlanetImg);
   drawSprite(space_bluePlanet, space_bluePlanetImg);
@@ -1011,7 +1018,9 @@ function draw() {
   drawSprite(space_rocketBody, space_rocketImg);
 
   space_ball[0].isStatic = true;
-  drawSprite(space_ball[0], space_blackHoleImg);
+  if (space_blackHoleImg != null) {
+    drawSprite(space_ball[0], space_blackHoleImg);
+  }
   for (let i = 1; i < space_ball.length; i++) {
     drawBody(space_ball[i]);
   }
