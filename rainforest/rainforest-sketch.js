@@ -22,7 +22,7 @@ const drawBodies = Helpers.drawBodies;
 const drawConstraint = Helpers.drawConstraint;
 const drawSprite = Helpers.drawSprite;
 
-let cam;
+let rainforest_cam;
 let engine;
 let world;
 let rainforest_boxes = [];
@@ -99,7 +99,7 @@ function rainforest_setup() {
     canvas = createCanvas(screen.availWidth, screen.availHeight - 110, WEBGL);
     engine = Engine.create();
     world = engine.world;
-    cam = createCamera()
+    rainforest_cam = createCamera()
     let pi = Math.PI
 
     rainforest_ramp = Bodies.rectangle(rainforest_x + 1020, rainforest_y + 407, 600, 100, {isStatic: true})
@@ -314,11 +314,11 @@ function rainforest_setup() {
 
 
 function rainforest_moveCam(mainBody) {
-    cam.setPosition(mainBody.body.position.x + 200, mainBody.body.position.y - 100, 4000)
+    rainforest_cam.setPosition(mainBody.body.position.x + 200, mainBody.body.position.y - 100, 4000)
 }
 
 function rainforest_diffMoveCam(x, y, zoom){
-    cam.setPosition(x, y, zoom)
+    rainforest_cam.setPosition(x, y, zoom)
 }
 
 function rainforest_draw() {
