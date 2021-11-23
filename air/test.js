@@ -92,6 +92,7 @@ let airBucketLeftWall;
 let airBucketRightWall;
 let airBucketBottom;
 let airBucketBottomConstraint;
+let airIsPastPlinko = false;
 
 // Other Plane Crash
 let airNewtonsHelicopters = [];
@@ -101,11 +102,14 @@ let airNewtonsCradle;
 let airBallPlatform;
 let airDropBall;
 let airDropBall2;
+let airShowDropBall = false;
+let airDropBallLefttWall;
+let airDropBallRightWall;
 
 // Windmills
-let windmills = [];
-let windmillCoords = [];
-let windmillVertices = [
+let airWindmills = [];
+let airWindmillCoords = [];
+let airWindmillVertices = [
   { x: 5, y: 5 },
   { x: 50, y: 5 },
   { x: 50, y: 55 },
@@ -131,7 +135,10 @@ let windmillVertices = [
   { x: -5, y: 200 },
   { x: 5, y: 200 },
 ];
-let windmillBlades;
+let airWindmillBlades;
+
+// Ramps
+let airRamp1;
 
 // Ragdoll
 let ragdollCharacter;
@@ -223,28 +230,29 @@ function createSpring(x, y, w, h, power, lastSpring) {
 }
 
 function createWindmill(x, y, towerHeight, rotationOffset) {
-  windmillCoords.push([x, y - towerHeight / 2]);
+  airWindmillCoords.push([x, y - towerHeight / 2]);
   let tower = Bodies.rectangle(x, y, 50, towerHeight);
   let topOfTower = Vector.create(x, y - towerHeight / 2);
-  windmillBlades = Bodies.fromVertices(
+  airWindmillBlades = Bodies.fromVertices(
     x,
     y - towerHeight / 2,
-    windmillVertices,
-    { isStatic: true, friction: 0 },
+    airWindmillVertices,
+    { isStatic: false, friction: 0 },
     [(flagInternal = false)],
     [(removeCollinear = 0.01)],
     [(minimumArea = 10)],
     [(removeDuplicatePoints = 0.01)]
   );
-  Body.rotate(windmillBlades, rotationOffset, topOfTower);
+  Body.rotate(airWindmillBlades, rotationOffset, topOfTower);
   constraint = Constraint.create({
     pointA: { x: x, y: y - towerHeight / 2 },
-    bodyB: windmillBlades,
+    bodyB: airWindmillBlades,
     stiffness: 1,
     length: 0,
   });
-  World.add(engine.world, [windmillBlades, constraint]);
-  return [tower, windmillBlades];
+  Body.scale(airWindmillBlades, 4, 4);
+  World.add(engine.world, [airWindmillBlades, constraint]);
+  return [tower, airWindmillBlades];
 }
 
 function setMassCentre(body, offset) {
@@ -530,6 +538,7 @@ airConditions.push(
       return true;
     },
     () => {
+      airIsPastPlinko = true;
       Body.setVelocity(airPlaneBody, { x: 0, y: 0 });
       Body.applyForce(airPlaneBody, airPlaneBody.position, { x: 5, y: 0 });
       airCameraFollowMainBody = false;
@@ -565,8 +574,10 @@ airConditions.push(
     },
     () => {
       moveCameraPan(-1000, 0, 0, 8);
-      World.add(engine.world, [airDropBall, airDropBall2, airBallPlatform]);
-      drawBodies([airDropBall, airDropBall2, airBallPlatform]);
+      World.add(engine.world, 
+        [airDropBall, airDropBall2, airBallPlatform, 
+        airDropBallLeftWall, airDropBallRightWall]);
+      airShowDropBall = true;
     },
     () => {
       airConditions.shift();
@@ -577,13 +588,13 @@ airConditions.push(
 airConditions.push(
   new Conditional(
     () => {
-      // Matter.SAT.collides(newtonsCradle.bodies[3], newtonsCradle.bodies[2]).collided &&
-      return true;
+      return Matter.SAT.collides(
+        airNewtonsCradle.bodies[3],
+        airNewtonsCradle.bodies[2]
+      ).collided;
     },
     () => {
       fill(122, 122, 122);
-      drawBody(airDropBall);
-      drawBody(airBallPlatform);
     },
     () => {
       if (airDropBall.velocity.y != 0) {
@@ -599,16 +610,39 @@ airConditions.push(
       return true;
     },
     () => {
+      World.remove(engine.world, airPlaneBody);
+      airPlinkoBalls.forEach(element => {
+          World.remove(engine.world, element);
+      });
       engine.timing.timeScale = 1;
-      fill(122, 122, 122);
-      noStroke();
-      drawBody(airDropBall);
-      drawBody(airBallPlatform);
-      airCameraFollowMainBody = true;
       airCameraMainBody = airDropBall;
+      airCameraFollowMainBody = true;
+      airCamZoom = 0;
     },
-    () => {}
+    () => {
+      airConditions.shift();
+    }
   )
+);
+
+airConditions.push(
+    new Conditional(
+      () => {
+        airCamZoom -= 25;
+        return true;
+      },
+      () => {
+          for (let index = 0; index < airWindmills.length; index++) {
+              const element = airWindmills[index][1];
+              Body.setAngularVelocity(element, Math.PI / 40);
+          }
+      },
+      () => {
+          if(airCamZoom == -1500) {
+              airConditions.shift();
+          }
+      }
+    )
 );
 
 /* ------------------------------- End Air Conditionals -----------------------------------*/
@@ -744,12 +778,22 @@ function setup() {
   airBallPlatform = Bodies.rectangle(27800, 610, 800, 10, { isStatic: true });
   airDropBall = Bodies.circle(27650, 400, 75);
   airDropBall2 = Bodies.circle(27500, 400, 30);
+  airDropBallLeftWall = Bodies.rectangle(25000, 8000, 10, 9000, {
+    isStatic: true,
+  });
+  airDropBallRightWall = Bodies.rectangle(28500, 8000, 10, 9000, {
+    isStatic: true,
+  });
 
   // Add windmills
-  // let windmill1 = createWindmill(16500, 650, 400, 0);
-  // let windmill2 = createWindmill(16800, 160, 500, Math.PI + 0.16);
-  // let windmill3 = createWindmill(17100, 690, 270, 0);
-  // windmills = [windmill1, windmill2, windmill3];
+  let windmill1 = createWindmill(27000, 3650, 0, 0);
+  let windmill2 = createWindmill(27600, 6660, 0, Math.PI + 0.16);
+  let windmill3 = createWindmill(27100, 9690, 0, 0);
+  airWindmills = [windmill1, windmill2, windmill3];
+  World.add(engine.world, airWindmills);
+
+  airRamp1 = Bodies.rectangle(27650, 12000, 1000, 10, {isStatic: true});
+  World.add(engine.world, airRamp1);
 
   //run the engine
   Engine.run(engine);
@@ -806,14 +850,16 @@ function draw() {
   stroke(128);
   strokeWeight(2);
   // drawBody(airPlaneBody);
-  drawSpriteWithOffset(
-    airPlaneBody,
-    airPlaneImg,
-    -100,
-    0,
-    airPlaneBody.width,
-    airPlaneBody.height
-  );
+  if(!airShowDropBall) {
+    drawSpriteWithOffset(
+        airPlaneBody,
+        airPlaneImg,
+        -100,
+        0,
+        airPlaneBody.width,
+        airPlaneBody.height
+    );
+  }
   /*------------ End Draw Plane --------------*/
 
   /*-------------- Begin Clouds --------------*/
@@ -831,8 +877,8 @@ function draw() {
   /*--------------- End Clouds ---------------*/
 
   /*-------------- Begin Windmill -------------*/
-  for (var i = 0; i < windmills.length; i++) {
-    let windmill = windmills[i];
+  for (var i = 0; i < airWindmills.length; i++) {
+    let windmill = airWindmills[i];
     fill(133, 98, 1);
     drawBody(windmill[0]);
     fill(255, 255, 255);
@@ -879,7 +925,11 @@ function draw() {
   /*-------------- End Springs ----------------*/
 
   /*-------------- Draw Plinko ----------------*/
-  if (airCamera.centerX > 17500 && airCamera.centerX <= 27000) {
+  if (
+    airCamera.centerX > 17500 &&
+    airCamera.centerX <= 27000 &&
+    !airIsPastPlinko
+  ) {
     for (var i = 0; i < airPlinkoPegs.length; i++) {
       airPlinkoPegs[i].show();
     }
@@ -916,6 +966,19 @@ function draw() {
       1200,
       300
     );
+  }
+
+  if (airShowDropBall) {
+    fill(122, 122, 122);
+    noStroke();
+    drawBodies([
+      airDropBall,
+      airDropBall2,
+      airBallPlatform,
+      airDropBallLeftWall,
+      airDropBallRightWall,
+      airRamp1
+    ]);
   }
   /*-------------- End Crash -----------------*/
 
