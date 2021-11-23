@@ -1,15 +1,17 @@
-class Ball {
+class Peg {
     constructor(x, y, r) {
         var options = {
-            restitution: 0.2,
-        };
+            friction: 0,
+            isStatic: true
+        }
         this.body = Bodies.circle(x, y, r, options);
         this.r = r;
         World.add(world, this.body);
     }
     show() {
-        fill(255, 255, 255);
-        noStroke();
+        ellipseMode(CENTER);
+        fill(255);
+        stroke(255);
         var pos = this.body.position;
         push();
         translate(pos.x, pos.y);
@@ -17,4 +19,3 @@ class Ball {
         pop();
     }
 }
-
